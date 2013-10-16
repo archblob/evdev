@@ -2,7 +2,7 @@
 module ArchBlob.Evdev.Internal.Types where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.Int            (Int32)
+import Data.Int            (Int32, Int16)
 import Data.UnixTime       (UnixTime(..))
 import Data.Word           (Word16)
 import Foreign.Storable
@@ -95,6 +95,100 @@ instance Storable InputAbsInfo where
       (#poke struct input_absinfo, fuzz)       ptr (absiFuzz       absInf)
       (#poke struct input_absinfo, flat)       ptr (absiFlat       absInf)
       (#poke struct input_absinfo, resolution) ptr (absiResolution absInf)
+
+data FFReplay =
+  FFReplay {
+    ffReplayLength :: !Word16
+  , ffReplayDelay  :: !Word16
+  } deriving (Eq, Show)
+
+instance Storable FFReplay where
+  sizeOf _    = (#size struct ff_replay)
+  alignment _ = (#alignment struct ff_replay)
+  peek ptr    =
+    FFReplay
+      <$> (#peek struct ff_replay, length) ptr
+      <*> (#peek struct ff_replay, delay)  ptr
+  poke ptr rp = do
+      (#poke struct ff_replay, length) ptr (ffReplayLength rp)
+      (#poke struct ff_replay, delay)  ptr (ffReplayDelay rp)
+
+data FFTrigger =
+  FFTrigger {
+    ffTriggerButton   :: !Word16
+  , ffTriggerInterval :: !Word16
+  } deriving (Eq, Show)
+
+instance Storable FFTrigger where
+  sizeOf _    = (#size struct ff_trigger)
+  alignment _ = (#alignment struct ff_trigger)
+  peek ptr    =
+    FFTrigger
+      <$> (#peek struct ff_trigger, button)   ptr
+      <*> (#peek struct ff_trigger, interval) ptr
+  poke ptr tr = do
+      (#poke struct ff_trigger, button)   ptr (ffTriggerButton tr)
+      (#poke struct ff_trigger, interval) ptr (ffTriggerInterval tr)
+
+data FFEnvelope =
+  FFEnvelope {
+    ffAttackLength :: !Word16
+  , ffAttackLevel  :: !Word16
+  , ffFadeLength   :: !Word16
+  , ffFadeLevel    :: !Word16
+  } deriving (Eq, Show)
+
+instance Storable FFEnvelope where
+  sizeOf _    = (#size struct ff_envelope)
+  alignment _ = (#alignment struct ff_envelope)
+  peek ptr    =
+    FFEnvelope
+      <$> (#peek struct ff_envelope, attack_length) ptr
+      <*> (#peek struct ff_envelope, attack_level)  ptr
+      <*> (#peek struct ff_envelope, fade_length)   ptr
+      <*> (#peek struct ff_envelope, fade_level)    ptr
+  poke ptr en = do
+      (#poke struct ff_envelope, attack_length) ptr (ffAttackLength en)
+      (#poke struct ff_envelope, attack_level)  ptr (ffAttackLevel en)
+      (#poke struct ff_envelope, fade_length)   ptr (ffFadeLength en)
+      (#poke struct ff_envelope, fade_level)    ptr (ffFadeLevel en)
+
+data FFConstantEffect =
+  FFConstantEffect {
+    ffConstantEffectLevel    :: !Int16
+  , ffConstantEffectEnvelope :: FFEnvelope
+  } deriving (Eq, Show)
+
+instance Storable FFConstantEffect where
+  sizeOf _    = (#size struct ff_constant_effect)
+  alignment _ = (#alignment struct ff_constant_effect)
+  peek ptr    =
+    FFConstantEffect
+      <$> (#peek struct ff_constant_effect, level)    ptr
+      <*> (#peek struct ff_constant_effect, envelope) ptr
+  poke ptr ce = do
+    (#poke struct ff_constant_effect, level)    ptr (ffConstantEffectLevel ce)
+    (#poke struct ff_constant_effect, envelope) ptr (ffConstantEffectEnvelope ce)
+
+data FFRampEffect =
+  FFRampEffect {
+    ffRampEffectStartLevel :: !Int16
+  , ffRampEffectEndLevel   :: !Int16
+  , ffRampEffectEnvelope   :: FFEnvelope
+  } deriving (Eq, Show)
+
+instance Storable FFRampEffect where
+  sizeOf _    = (#size struct ff_ramp_effect)
+  alignment _ = (#alignment struct ff_ramp_effect)
+  peek ptr    =
+    FFRampEffect
+      <$> (#peek struct ff_ramp_effect, start_level) ptr
+      <*> (#peek struct ff_ramp_effect, end_level)   ptr
+      <*> (#peek struct ff_ramp_effect, envelope)    ptr
+  poke ptr re = do
+      (#poke struct ff_ramp_effect, start_level) ptr (ffRampEffectStartLevel re)
+      (#poke struct ff_ramp_effect, end_level)   ptr (ffRampEffectEndLevel re)
+      (#poke struct ff_ramp_effect, envelope)    ptr (ffRampEffectEnvelope re)
 
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType

@@ -190,6 +190,52 @@ instance Storable FFRampEffect where
       (#poke struct ff_ramp_effect, end_level)   ptr (ffRampEffectEndLevel re)
       (#poke struct ff_ramp_effect, envelope)    ptr (ffRampEffectEnvelope re)
 
+data FFConditionEffect =
+  FFConditionEffect {
+    ffConditionEffectRightSaturation :: !Word16
+  , ffConditionEffectLeftSaturation  :: !Word16
+  , ffConditionEffectRightCoeff      :: !Int16
+  , ffConditionEffectLeftCoeff       :: !Int16
+  , ffConditionEffectDeadband        :: !Word16
+  , ffConditionEffectCenter          :: !Int16
+  } deriving (Eq, Show)
+
+instance Storable FFConditionEffect where
+  sizeOf _    = (#size struct ff_condition_effect)
+  alignment _ = (#alignment struct ff_condition_effect)
+  peek ptr    =
+    FFConditionEffect
+      <$> (#peek struct ff_condition_effect, right_saturation) ptr
+      <*> (#peek struct ff_condition_effect, left_saturation)  ptr
+      <*> (#peek struct ff_condition_effect, right_coeff)      ptr
+      <*> (#peek struct ff_condition_effect, left_coeff)       ptr
+      <*> (#peek struct ff_condition_effect, deadband)         ptr
+      <*> (#peek struct ff_condition_effect, center)           ptr
+  poke ptr ce = do
+      (#poke struct ff_condition_effect, right_saturation) ptr (ffConditionEffectRightSaturation ce)
+      (#poke struct ff_condition_effect, left_saturation)  ptr (ffConditionEffectLeftSaturation ce)
+      (#poke struct ff_condition_effect, right_coeff)      ptr (ffConditionEffectRightCoeff ce)
+      (#poke struct ff_condition_effect, left_coeff)       ptr (ffConditionEffectLeftCoeff ce)
+      (#poke struct ff_condition_effect, deadband)         ptr (ffConditionEffectDeadband ce)
+      (#poke struct ff_condition_effect, center)           ptr (ffConditionEffectCenter ce)
+
+data FFRumbleEffect =
+  FFRumbleEffect {
+    ffRumbleEffectStrongMagnitude :: !Word16
+  , ffRumbleEffectWeakMagnitude :: !Word16
+  } deriving (Eq, Show)
+
+instance Storable FFRumbleEffect where
+  sizeOf _    = (#size struct ff_rumble_effect)
+  alignment _ = (#alignment struct ff_rumble_effect)
+  peek ptr    =
+    FFRumbleEffect
+      <$> (#peek struct ff_rumble_effect, strong_magnitude) ptr
+      <*> (#peek struct ff_rumble_effect, weak_magnitude)   ptr
+  poke ptr re = do
+      (#poke struct ff_rumble_effect, strong_magnitude) ptr (ffRumbleEffectStrongMagnitude re)
+      (#poke struct ff_rumble_effect, weak_magnitude)   ptr (ffRumbleEffectWeakMagnitude re) 
+
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType
  , ev_syn       = EV_SYN

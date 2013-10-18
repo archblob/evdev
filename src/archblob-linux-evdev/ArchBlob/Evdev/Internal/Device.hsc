@@ -1,0 +1,42 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+module ArchBlob.Evdev.Internal.Device where
+
+import ArchBlob.Evdev.Internal.Types
+
+import Foreign
+import Foreign.C.Error       (throwErrnoIfMinus1_)
+import Foreign.C.String      (CString, peekCAString)
+import Foreign.C.Types
+import System.Posix.Types    (Fd)
+
+#include <linux/input.h>
+#include <sys/ioctl.h>
+
+foreign import ccall "sys/ioctl.h ioctl"
+  c_ioctl :: CInt -> CInt -> Ptr () -> IO CInt
+
+ioctl :: Storable a => Fd -> CInt -> Ptr a -> IO ()
+ioctl fd c ptr =
+  throwErrnoIfMinus1_ "ioctl" $ c_ioctl (fromIntegral fd) c (castPtr ptr)
+
+-- | Get driver version.
+eviocGetVersion :: Fd -> IO CInt
+eviocGetVersion fd =
+  let getVersion :: Ptr CInt -> IO CInt
+      getVersion ptr = ioctl fd (#const EVIOCGVERSION) ptr >> peek ptr
+  in alloca getVersion
+
+-- | Get device ID.
+eviocGetID :: Fd -> IO InputID
+eviocGetID fd =
+  let getID :: Ptr InputID -> IO InputID
+      getID ptr = ioctl fd (#const EVIOCGID) ptr >> peek ptr
+  in alloca getID
+
+-- | Get device name.
+-- TODO: Something is wrong with the encoding.
+eviocGetName :: Fd -> IO String
+eviocGetName fd =
+  let getName :: CString -> IO String
+      getName ptr = ioctl fd (#const EVIOCGNAME(0xff)) ptr >> peekCAString ptr
+  in alloca getName

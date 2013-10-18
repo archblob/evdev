@@ -11,17 +11,6 @@ import Foreign.Storable
 
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Storable UnixTime where
-  sizeOf _    = (#size struct timeval)
-  alignment _ = (#alignment struct timeval)
-  peek ptr    =
-    UnixTime
-      <$> (#peek struct timeval, tv_sec)  ptr
-      <*> (#peek struct timeval, tv_usec) ptr
-  poke ptr ut = do
-      (#poke struct timeval, tv_sec)  ptr (utSeconds ut)
-      (#poke struct timeval, tv_usec) ptr (utMicroSeconds ut)
-
 data InputEvent = InputEvent {
       evTime  :: UnixTime
     , evType  :: !Word16

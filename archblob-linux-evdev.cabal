@@ -18,7 +18,10 @@ library
                      ArchBlob.Evdev.Internal.Device
   -- other-modules:
   other-extensions:  ForeignFunctionInterface
-  build-depends:     base >=4.6 && <4.7, bytestring >=0.10 && <0.11, unix-time
+  build-depends:     base       >=4.6   && <4.7 ,
+                     bytestring >=0.10  && <0.11,
+                     unix-time  >=0.2.1 && <0.3.0
+
   ghc-options:       -Wall -funbox-strict-fields
   hs-source-dirs:    src,
                      src/archblob-linux-evdev

@@ -1,5 +1,9 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module ArchBlob.Evdev.Internal.Device where
+module ArchBlob.Evdev.Internal.Device (
+    eviocGetVersion
+  , eviocGetID
+  , eviocGetName
+  ) where
 
 import ArchBlob.Evdev.Internal.Types
 

@@ -4,7 +4,8 @@ module ArchBlob.Evdev.Internal.Types where
 import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32, Int16)
 import Data.UnixTime       (UnixTime(..))
-import Data.Word           (Word16)
+import Data.Word           (Word16, Word32)
+import Foreign.Ptr
 import Foreign.Storable
 
 #include <linux/input.h>
@@ -208,6 +209,41 @@ instance Storable FFConditionEffect where
       (#poke struct ff_condition_effect, deadband)         ptr (ffConditionEffectDeadband ce)
       (#poke struct ff_condition_effect, center)           ptr (ffConditionEffectCenter ce)
 
+data FFPeriodicEffect =
+  FFPeriodicEffect {
+    ffPeriodicEffectWaveForm   :: !Word16
+  , ffPeriodicEffectPeriod     :: !Word16
+  , ffPeriodicEffectMagnitude  :: !Int16
+  , ffPeriodicEffectOffset     :: !Int16
+  , ffPeriodicEffectPhase      :: !Word16
+  , ffPeriodicEffectEnvelope   :: FFEnvelope
+  , ffPeriodicEffectCustomLen  :: !Word32
+  , ffPeriodicEffectCustomData :: Ptr Int16
+  } deriving (Eq, Show)
+
+instance Storable FFPeriodicEffect where
+  sizeOf _    = (#size struct ff_periodic_effect)
+  alignment _ = (#alignment struct ff_periodic_effect)
+  peek ptr    =
+    FFPeriodicEffect
+      <$> (#peek struct ff_periodic_effect, waveform)    ptr
+      <*> (#peek struct ff_periodic_effect, period)      ptr
+      <*> (#peek struct ff_periodic_effect, magnitude)   ptr
+      <*> (#peek struct ff_periodic_effect, offset)      ptr
+      <*> (#peek struct ff_periodic_effect, phase)       ptr
+      <*> (#peek struct ff_periodic_effect, envelope)    ptr
+      <*> (#peek struct ff_periodic_effect, custom_len)  ptr
+      <*> (#peek struct ff_periodic_effect, custom_data) ptr
+  poke ptr pe = do
+      (#poke struct ff_periodic_effect, waveform)    ptr (ffPeriodicEffectWaveForm   pe)
+      (#poke struct ff_periodic_effect, period)      ptr (ffPeriodicEffectPeriod     pe)
+      (#poke struct ff_periodic_effect, magnitude)   ptr (ffPeriodicEffectMagnitude  pe)
+      (#poke struct ff_periodic_effect, offset)      ptr (ffPeriodicEffectOffset     pe)
+      (#poke struct ff_periodic_effect, phase)       ptr (ffPeriodicEffectPhase      pe)
+      (#poke struct ff_periodic_effect, envelope)    ptr (ffPeriodicEffectEnvelope   pe)
+      (#poke struct ff_periodic_effect, custom_len)  ptr (ffPeriodicEffectCustomLen  pe)
+      (#poke struct ff_periodic_effect, custom_data) ptr (ffPeriodicEffectCustomData pe)
+
 data FFRumbleEffect =
   FFRumbleEffect {
     ffRumbleEffectStrongMagnitude :: !Word16
@@ -224,6 +260,8 @@ instance Storable FFRumbleEffect where
   poke ptr re = do
       (#poke struct ff_rumble_effect, strong_magnitude) ptr (ffRumbleEffectStrongMagnitude re)
       (#poke struct ff_rumble_effect, weak_magnitude)   ptr (ffRumbleEffectWeakMagnitude re) 
+
+
 
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType

@@ -1,11 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module ArchBlob.Evdev.Internal.Device (
+module Evdev.Uapi.Internal.Device (
     eviocGetVersion
   , eviocGetID
   , eviocGetName
   ) where
 
-import ArchBlob.Evdev.Internal.Types
+import Evdev.Uapi.Internal.Types
 
 import Foreign
 import Foreign.C.Error       (throwErrnoIfMinus1_)

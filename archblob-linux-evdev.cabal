@@ -14,8 +14,8 @@ cabal-version:       >=1.10
 
 
 library
-  exposed-modules:   ArchBlob.Evdev.Internal.Types,
-                     ArchBlob.Evdev.Internal.Device
+  exposed-modules:   Evdev.Uapi.Internal.Types,
+                     Evdev.Uapi.Internal.Device
   -- other-modules:
   other-extensions:  ForeignFunctionInterface
   build-depends:     base       >=4.6   && <4.7 ,
@@ -24,9 +24,8 @@ library
 
   ghc-options:       -Wall -funbox-strict-fields
   hs-source-dirs:    src,
-                     src/archblob-linux-evdev
-                     src/archblob-linux-evdev/ArchBlob
-                     src/archblob-linux-evdev/ArchBlob/Evdev
-                     src/archblob-linux-evdev/ArchBlob/Evdev/Internal
+                     src/Evdev,
+                     src/Evdev/Uapi,
+                     src/Evdev/Uapi/Internal
   build-tools:       hsc2hs
   default-language:  Haskell2010

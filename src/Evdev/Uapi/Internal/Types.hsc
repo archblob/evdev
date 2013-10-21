@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module ArchBlob.Evdev.Internal.Types where
+module Evdev.Uapi.Internal.Types where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32, Int16)

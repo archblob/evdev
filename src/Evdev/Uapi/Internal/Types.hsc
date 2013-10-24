@@ -13,7 +13,7 @@ import Foreign.Storable
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 data InputEvent = InputEvent {
-      evTime  :: UnixTime
+      evTime  :: !UnixTime
     , evType  :: !Word16
     , evCode  :: !Word16
     , evValue :: !Int32
@@ -146,7 +146,7 @@ instance Storable FFEnvelope where
 data FFConstantEffect =
   FFConstantEffect {
     ffConstantEffectLevel    :: !Int16
-  , ffConstantEffectEnvelope :: FFEnvelope
+  , ffConstantEffectEnvelope :: !FFEnvelope
   } deriving (Eq, Show)
 
 instance Storable FFConstantEffect where
@@ -164,7 +164,7 @@ data FFRampEffect =
   FFRampEffect {
     ffRampEffectStartLevel :: !Int16
   , ffRampEffectEndLevel   :: !Int16
-  , ffRampEffectEnvelope   :: FFEnvelope
+  , ffRampEffectEnvelope   :: !FFEnvelope
   } deriving (Eq, Show)
 
 instance Storable FFRampEffect where
@@ -216,9 +216,9 @@ data FFPeriodicEffect =
   , ffPeriodicEffectMagnitude  :: !Int16
   , ffPeriodicEffectOffset     :: !Int16
   , ffPeriodicEffectPhase      :: !Word16
-  , ffPeriodicEffectEnvelope   :: FFEnvelope
+  , ffPeriodicEffectEnvelope   :: !FFEnvelope
   , ffPeriodicEffectCustomLen  :: !Word32
-  , ffPeriodicEffectCustomData :: Ptr Int16
+  , ffPeriodicEffectCustomData :: !(Ptr Int16)
   } deriving (Eq, Show)
 
 instance Storable FFPeriodicEffect where
@@ -247,7 +247,7 @@ instance Storable FFPeriodicEffect where
 data FFRumbleEffect =
   FFRumbleEffect {
     ffRumbleEffectStrongMagnitude :: !Word16
-  , ffRumbleEffectWeakMagnitude :: !Word16
+  , ffRumbleEffectWeakMagnitude   :: !Word16
   } deriving (Eq, Show)
 
 instance Storable FFRumbleEffect where
@@ -259,9 +259,7 @@ instance Storable FFRumbleEffect where
       <*> (#peek struct ff_rumble_effect, weak_magnitude)   ptr
   poke ptr re = do
       (#poke struct ff_rumble_effect, strong_magnitude) ptr (ffRumbleEffectStrongMagnitude re)
-      (#poke struct ff_rumble_effect, weak_magnitude)   ptr (ffRumbleEffectWeakMagnitude re) 
-
-
+      (#poke struct ff_rumble_effect, weak_magnitude)   ptr (ffRumbleEffectWeakMagnitude re)
 
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType

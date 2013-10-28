@@ -4,7 +4,7 @@ module Evdev.Uapi.Internal.Types where
 import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32, Int16)
 import Data.UnixTime       (UnixTime(..))
-import Data.Word           (Word16, Word32)
+import Data.Word           (Word8, Word16, Word32)
 import Foreign.Ptr
 import Foreign.Storable
 
@@ -41,6 +41,32 @@ data InputID =
   , inpProduct :: !Word16
   , inpVersion :: !Word16
   } deriving (Eq, Show)
+
+data InputKeymapEntry =
+  InputKeymapEntry {
+    ikeFlags    :: !Word8
+  , ikeLen      :: !Word8
+  , ikeIndex    :: !Word16
+  , ikeKeycode  :: !Word32
+  , ikeScancode :: !(Ptr Word8)
+  }
+
+instance Storable InputKeymapEntry where
+  sizeOf _    = (#size struct input_keymap_entry)
+  alignment _ = (#alignment struct input_keymap_entry)
+  peek ptr    =
+    InputKeymapEntry
+      <$> (#peek struct input_keymap_entry, flags)    ptr
+      <*> (#peek struct input_keymap_entry, len)      ptr
+      <*> (#peek struct input_keymap_entry, index)    ptr
+      <*> (#peek struct input_keymap_entry, keycode)  ptr
+      <*> (#peek struct input_keymap_entry, scancode) ptr
+  poke ptr ike = do
+      (#poke struct input_keymap_entry, flags)    ptr (ikeFlags    ike)
+      (#poke struct input_keymap_entry, len)      ptr (ikeLen      ike)
+      (#poke struct input_keymap_entry, index)    ptr (ikeIndex    ike)
+      (#poke struct input_keymap_entry, keycode)  ptr (ikeKeycode  ike)
+      (#poke struct input_keymap_entry, scancode) ptr (ikeScancode ike)
 
 instance Storable InputID where
   sizeOf _    = (#size struct input_id)

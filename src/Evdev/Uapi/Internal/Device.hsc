@@ -7,6 +7,7 @@ module Evdev.Uapi.Internal.Device (
 
 import Evdev.Uapi.Internal.Types
 
+import Data.ByteString       (ByteString, packCString)
 import Foreign
 import Foreign.C.Error       (throwErrnoIfMinus1_)
 import Foreign.C.String      (CString, peekCAString)
@@ -44,3 +45,17 @@ eviocGetName fd =
   let getName :: CString -> IO String
       getName ptr = ioctl fd (#const EVIOCGNAME(0xff)) ptr >> peekCAString ptr
   in alloca getName
+
+-- | Get device physical location.
+eviocGetPhys :: Fd -> IO ByteString
+eviocGetPhys fd =
+  let getPhys :: CString -> IO ByteString
+      getPhys ptr = ioctl fd (#const EVIOCGNAME(0xff)) ptr >> packCString ptr
+  in alloca getPhys
+
+-- | Get keycode.
+eviocGetKeyCode :: Fd -> IO InputKeymapEntry
+eviocGetKeyCode fd =
+  let getKC :: Ptr InputKeymapEntry -> IO InputKeymapEntry
+      getKC ptr = ioctl fd (#const EVIOCGKEYCODE) ptr >> peek ptr
+  in alloca getKC

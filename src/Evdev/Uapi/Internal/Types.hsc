@@ -42,6 +42,7 @@ data InputID =
   , inpVersion :: !Word16
   } deriving (Eq, Show)
 
+-- TODO: this is not correct
 data InputKeymapEntry =
   InputKeymapEntry {
     ikeFlags    :: !Word8
@@ -287,6 +288,8 @@ instance Storable FFRumbleEffect where
       (#poke struct ff_rumble_effect, strong_magnitude) ptr (ffRumbleEffectStrongMagnitude re)
       (#poke struct ff_rumble_effect, weak_magnitude)   ptr (ffRumbleEffectWeakMagnitude re)
 
+-- | Event types
+
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType
  , ev_syn       = EV_SYN
@@ -301,7 +304,72 @@ newtype EventType = EventType Word16 deriving (Eq, Show)
  , ev_ff        = EV_FF
  , ev_pwr       = EV_PWR
  , ev_ff_status = EV_FF_STATUS
+ , ev_max       = EV_MAX
+ , ev_cnt       = EV_CNT
  }
+
+newtype FFEffectType = FFEffectType Word8 deriving Eq
+#{enum FFEffectType, FFEffectType
+ , ff_rumble       = FF_RUMBLE
+ , ff_periodic     = FF_PERIODIC
+ , ff_constant     = FF_CONSTANT
+ , ff_spring       = FF_SPRING
+ , ff_friction     = FF_FRICTION
+ , ff_damper       = FF_DAMPER
+ , ff_inertia      = FF_INERTIA
+ , ff_ramp         = FF_RAMP
+ , ff_effect_min   = FF_EFFECT_MIN
+ , ff_effect_max   = FF_EFFECT_MAX
+ , ff_square       = FF_SQUARE
+ , ff_triangle     = FF_TRIANGLE
+ , ff_sine         = FF_SINE
+ , ff_saw_up       = FF_SAW_UP
+ , ff_saw_down     = FF_SAW_DOWN
+ , ff_custom       = FF_CUSTOM
+ , ff_waveform_min = FF_WAVEFORM_MIN
+ , ff_waveform_max = FF_WAVEFORM_MAX
+ , ff_gain         = FF_GAIN
+ , ff_autocenter   = FF_AUTOCENTER
+ , ff_max          = FF_MAX
+ , ff_cnt          = FF_CNT
+ }
+
+-- TODO: add FFContitionEffect
+
+class (Storable a) => FFEffectClass a
+
+instance FFEffectClass FFConstantEffect
+instance FFEffectClass FFRampEffect
+instance FFEffectClass FFPeriodicEffect
+instance FFEffectClass FFRumbleEffect
+
+data FFEffect t =
+  FFEffect {
+    ffEffectId        :: !Int16
+  , ffEffectDirection :: !Word16
+  , ffEffectTrigger   :: !FFTrigger
+  , ffEffectReplay    :: !FFReplay
+  , ffEffectEffect    :: t
+  }
+
+instance (FFEffectClass a) => Storable (FFEffect a) where
+  sizeOf    _ = (#alignment struct ff_effect)
+  alignment _ = (#size struct ff_effect)
+  peek ptr    =
+    FFEffect
+      <$> (#peek struct ff_effect, id)        ptr
+      <*> (#peek struct ff_effect, direction) ptr
+      <*> (#peek struct ff_effect, trigger)   ptr
+      <*> (#peek struct ff_effect, replay)    ptr
+      <*> (#peek struct ff_effect, u)         ptr
+  poke ptr ef = do
+      (#poke struct ff_effect, id)        ptr (ffEffectId        ef)
+      (#poke struct ff_effect, direction) ptr (ffEffectDirection ef)
+      (#poke struct ff_effect, trigger)   ptr (ffEffectTrigger   ef)
+      (#poke struct ff_effect, replay)    ptr (ffEffectReplay    ef)
+      (#poke struct ff_effect, u)         ptr (ffEffectEffect    ef)
+
+-- | Synchronization events.
 
 newtype SyncType = SyncType Word16 deriving (Eq, Show)
 #{enum SyncType, SyncType
@@ -309,7 +377,11 @@ newtype SyncType = SyncType Word16 deriving (Eq, Show)
  , syn_config    = SYN_CONFIG
  , syn_mt_report = SYN_MT_REPORT
  , syn_dropped   = SYN_DROPPED
+ , syn_max       = SYN_MAX
+ , syn_cnt       = SYN_CNT
  }
+
+-- | Relative axes.
 
 newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
 #{enum RelAxes, RelAxes
@@ -323,7 +395,11 @@ newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
  , rel_dial   = REL_DIAL
  , rel_wheel  = REL_WHEEL
  , rel_misc   = REL_MISC
+ , rel_max    = REL_MAX
+ , rel_cnt    = REL_CNT
  }
+
+-- | Absolute axes.
 
 newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
 #{enum AbsAxes, AbsAxes
@@ -368,7 +444,12 @@ newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
  , abs_mt_distance    = ABS_MT_DISTANCE
  , abs_mt_tool_x      = ABS_MT_TOOL_X
  , abs_mt_tool_y      = ABS_MT_TOOL_Y
+ , abs_max            = ABS_MAX
+ , abs_cnt            = ABS_CNT
  }
+
+
+-- | Switch events.
 
 newtype SWType = SWType Word16 deriving (Eq, Show)
 #{enum SWType, SWType
@@ -387,6 +468,8 @@ newtype SWType = SWType Word16 deriving (Eq, Show)
  , sw_front_proximity      = SW_FRONT_PROXIMITY
  , sw_rotate_lock          = SW_ROTATE_LOCK
  , sw_linein_insert        = SW_LINEIN_INSERT
+ , sw_max                  = SW_MAX
+ , sw_cnt                  = SW_CNT
  }
 
 newtype MSCType = MSCType Word16 deriving (Eq, Show)
@@ -397,6 +480,8 @@ newtype MSCType = MSCType Word16 deriving (Eq, Show)
  , msc_raw       = MSC_RAW
  , msc_scan      = MSC_SCAN
  , msc_timestamp = MSC_TIMESTAMP
+ , msc_max       = MSC_MAX
+ , msc_cnt       = MSC_CNT
  }
 
 newtype LEDType = LEDType Word16 deriving (Eq, Show)
@@ -412,6 +497,8 @@ newtype LEDType = LEDType Word16 deriving (Eq, Show)
  , led_misc     = LED_MISC
  , led_mail     = LED_MAIL
  , led_charging = LED_CHARGING
+ , led_max      = LED_MAX
+ , led_cnt      = LED_CNT
  }
 
 newtype Key = Key Word16 deriving (Eq, Show)
@@ -920,4 +1007,94 @@ newtype Key = Key Word16 deriving (Eq, Show)
  , btn_trigger_happy38  = BTN_TRIGGER_HAPPY38
  , btn_trigger_happy39  = BTN_TRIGGER_HAPPY39
  , btn_trigger_happy40  = BTN_TRIGGER_HAPPY40
+ , key_min_interesting  = KEY_MUTE
+ , key_max              = KEY_MAX
+ , key_cnt              = KEY_CNT
+ }
+
+-- | MTTool types
+
+newtype MTTool = MTTool Word8 deriving Eq
+#{enum MTTool, MTTool
+ , mt_tool_finger = MT_TOOL_FINGER
+ , mt_tool_pen    = MT_TOOL_PEN
+ , mt_tool_max    = MT_TOOL_MAX
+ }
+
+ -- | Values describing the status of a force-feedback effect
+
+newtype FFStatus = FFStatus Word8 deriving Eq
+#{enum FFStatus, FFStatus
+ , ff_status_stopped = FF_STATUS_STOPPED
+ , ff_status_playing = FF_STATUS_PLAYING
+ , ff_status_max     = FF_STATUS_MAX
+ }
+
+-- | Force feedback effect types
+
+
+-- | Autorepeat values
+
+newtype Rep = Rep Word8 deriving Eq
+#{enum Rep, Rep
+ , rep_delay  = REP_DELAY
+ , rep_period = REP_PERIOD
+ , rep_max    = REP_MAX
+ , rep_cnt    = REP_CNT
+ }
+
+-- | Sounds
+
+newtype Sound = Sound Word8 deriving Eq
+#{enum Sound, Sound
+ , snd_click = SND_CLICK
+ , snd_bell  = SND_BELL
+ , snd_tone  = SND_TONE
+ , snd_max   = SND_MAX
+ , snd_cnt   = SND_CNT
+ }
+
+ -- | IDs
+
+newtype DeviceID = DeviceID Word8 deriving Eq
+#{enum DeviceID, DeviceID
+ , id_bus     = ID_BUS
+ , id_vendor  = ID_VENDOR
+ , id_product = ID_PRODUCT
+ , id_version = ID_VERSION
+ }
+
+newtype BusID = BusID Word8 deriving Eq
+#{enum BusID, BusID
+ , bus_pci       = BUS_PCI
+ , bus_isapnp    = BUS_ISAPNP
+ , bus_usb       = BUS_USB
+ , bus_hil       = BUS_HIL
+ , bus_bluetooth = BUS_BLUETOOTH
+ , bus_virtual   = BUS_VIRTUAL
+ , bus_isa       = BUS_ISA
+ , bus_i8042     = BUS_I8042
+ , bus_xtkbd     = BUS_XTKBD
+ , bus_rs232     = BUS_RS232
+ , bus_gameport  = BUS_GAMEPORT
+ , bus_parport   = BUS_PARPORT
+ , bus_amiga     = BUS_AMIGA
+ , bus_adb       = BUS_ADB
+ , bus_i2c       = BUS_I2C
+ , bus_host      = BUS_HOST
+ , bus_gsc       = BUS_GSC
+ , bus_atari     = BUS_ATARI
+ , bus_spi       = BUS_SPI
+ }
+
+-- | Device properties and quirks
+
+newtype InputProperty = InputProperty Word8 deriving Eq
+#{enum InputProperty, InputProperty
+ , input_prop_pointer   = INPUT_PROP_POINTER
+ , input_prop_direct    = INPUT_PROP_DIRECT
+ , input_prop_buttonpad = INPUT_PROP_BUTTONPAD
+ , input_prop_semi_mt   = INPUT_PROP_SEMI_MT
+ , input_prop_max       = INPUT_PROP_MAX
+ , input_prop_cnt       = INPUT_PROP_CNT
  }

@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, GADTs #-}
 module Evdev.Uapi.Internal.Types where
 
 import Control.Applicative ((<$>), (<*>))
@@ -335,7 +335,7 @@ newtype FFEffectType = FFEffectType Word8 deriving Eq
  }
 
 -- TODO: add FFContitionEffect
-
+-- TODO: remember to hide this when reexporting
 class (Storable a) => FFEffectClass a
 
 instance FFEffectClass FFConstantEffect
@@ -343,14 +343,14 @@ instance FFEffectClass FFRampEffect
 instance FFEffectClass FFPeriodicEffect
 instance FFEffectClass FFRumbleEffect
 
-data FFEffect t =
-  FFEffect {
-    ffEffectId        :: !Int16
-  , ffEffectDirection :: !Word16
-  , ffEffectTrigger   :: !FFTrigger
-  , ffEffectReplay    :: !FFReplay
-  , ffEffectEffect    :: t
-  }
+data FFEffect t where
+  FFEffect :: FFEffectClass t
+           => { ffEffectId        :: !Int16
+              , ffEffectDirection :: !Word16
+              , ffEffectTrigger   :: !FFTrigger
+              , ffEffectReplay    :: !FFReplay
+              , ffEffectEffect    :: t }
+           -> FFEffect t
 
 instance (FFEffectClass a) => Storable (FFEffect a) where
   sizeOf    _ = (#alignment struct ff_effect)

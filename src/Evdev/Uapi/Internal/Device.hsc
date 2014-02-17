@@ -3,14 +3,17 @@ module Evdev.Uapi.Internal.Device (
     eviocGetVersion
   , eviocGetID
   , eviocGetName
+  , eviocGetPhys
+  , eviocGetUniq
+  , eviocGetProp
+  , eviocGetKeyCode
   ) where
 
 import Evdev.Uapi.Internal.Types
 
-import Data.ByteString       (ByteString, packCString)
 import Foreign
 import Foreign.C.Error       (throwErrnoIfMinus1_)
-import Foreign.C.String      (CString, peekCAString)
+import Foreign.C.String      (CString, peekCString, peekCAString)
 import Foreign.C.Types
 import System.Posix.Types    (Fd)
 
@@ -43,14 +46,14 @@ eviocGetID fd =
 eviocGetName :: Fd -> IO String
 eviocGetName fd =
   let getName :: CString -> IO String
-      getName ptr = ioctl fd (#const EVIOCGNAME(0xff)) ptr >> peekCAString ptr
+      getName ptr = ioctl fd (#const EVIOCGNAME(0x100)) ptr >> peekCAString ptr
   in alloca getName
 
 -- | Get device physical location.
-eviocGetPhys :: Fd -> IO ByteString
+eviocGetPhys :: Fd -> IO String
 eviocGetPhys fd =
-  let getPhys :: CString -> IO ByteString
-      getPhys ptr = ioctl fd (#const EVIOCGNAME(0xff)) ptr >> packCString ptr
+  let getPhys :: CString -> IO String
+      getPhys ptr = ioctl fd (#const EVIOCGPHYS(0x100)) ptr >> peekCAString ptr
   in alloca getPhys
 
 -- | Get keycode.
@@ -59,3 +62,17 @@ eviocGetKeyCode fd =
   let getKC :: Ptr InputKeymapEntry -> IO InputKeymapEntry
       getKC ptr = ioctl fd (#const EVIOCGKEYCODE) ptr >> peek ptr
   in alloca getKC
+
+-- | Get unique identifier
+eviocGetUniq :: Fd -> IO String
+eviocGetUniq fd =
+  let getUQ :: CString -> IO String
+      getUQ ptr = ioctl fd (#const EVIOCGUNIQ(0x100)) ptr >> peekCString ptr
+  in alloca getUQ
+
+-- | Get device properties
+eviocGetProp :: Fd -> IO String
+eviocGetProp fd =
+  let getProp :: CString -> IO String
+      getProp ptr = ioctl fd (#const EVIOCGPROP(0x100)) ptr >> peekCString ptr
+  in alloca getProp

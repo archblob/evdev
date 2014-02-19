@@ -13,54 +13,53 @@ import Prelude hiding (id, length)
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 data Effect =
-    Rumble { 
+    Rumble {
              id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            , rumble    :: !RumbleEffect
            }
-  | Periodic { 
+  | Periodic {
                id        :: !Int16
              , direction :: !Word16
              , trigger   :: !Trigger
              , replay    :: !Replay
              , periodic  :: !PeriodicEffect
              }
-  | Constant { 
+  | Constant {
                id        :: !Int16
              , direction :: !Word16
-             , trigger   :: !Trigger
              , replay    :: !Replay
              , constant  :: !ConstantEffect
              }
-  | Spring { 
+  | Spring {
              id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            , spring    :: !(Ptr ConditionEffect)
            }
-  | Friction { 
+  | Friction {
                id        :: !Int16
              , direction :: !Word16
              , trigger   :: !Trigger
              , replay    :: !Replay
              , friction  :: !(Ptr ConditionEffect)
              }
-  | Damper { 
+  | Damper {
              id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            }
-  | Inertia { 
+  | Inertia {
               id        :: !Int16
             , direction :: !Word16
             , trigger   :: !Trigger
             , replay    :: !Replay
             }
-  | Ramp  { 
+  | Ramp  {
             id        :: !Int16
           , direction :: !Word16
           , trigger   :: !Trigger
@@ -329,4 +328,4 @@ newtype FFStatus = FFStatus Word8 deriving Eq
  , ff_status_playing = FF_STATUS_PLAYING
  , ff_status_max     = FF_STATUS_MAX
  }
- 
+

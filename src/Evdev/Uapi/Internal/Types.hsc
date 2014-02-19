@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, GADTs, FlexibleInstances #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module Evdev.Uapi.Internal.Types where
 
 import Control.Applicative ((<$>), (<*>))
@@ -7,6 +7,7 @@ import Data.UnixTime       (UnixTime(..))
 import Data.Word           (Word8, Word16, Word32)
 import Foreign.Ptr
 import Foreign.Storable
+import Prelude hiding (id)
 
 #include <linux/input.h>
 
@@ -308,7 +309,7 @@ newtype EventType = EventType Word16 deriving (Eq, Show)
  , ev_cnt       = EV_CNT
  }
 
-newtype FFEffectType = FFEffectType Word8 deriving Eq
+newtype FFEffectType = FFEffectType { unFFEffectType :: Word16 } deriving Eq
 #{enum FFEffectType, FFEffectType
  , ff_rumble       = FF_RUMBLE
  , ff_periodic     = FF_PERIODIC
@@ -320,6 +321,10 @@ newtype FFEffectType = FFEffectType Word8 deriving Eq
  , ff_ramp         = FF_RAMP
  , ff_effect_min   = FF_EFFECT_MIN
  , ff_effect_max   = FF_EFFECT_MAX
+ }
+
+newtype FFPeriodicEffectType = FFPeriodicEffectType Word16 deriving Eq
+#{enum FFPeriodicEffectType, FFPeriodicEffectType
  , ff_square       = FF_SQUARE
  , ff_triangle     = FF_TRIANGLE
  , ff_sine         = FF_SINE
@@ -334,42 +339,99 @@ newtype FFEffectType = FFEffectType Word8 deriving Eq
  , ff_cnt          = FF_CNT
  }
 
+data FFEffect =
+    FFRumble { id        :: !Int16
+             , direction :: !Word16
+             , trigger   :: !FFTrigger
+             , replay    :: !FFReplay
+             , rumble    :: !FFRumbleEffect
+             }
+  | FFPeriodic { id        :: !Int16
+               , direction :: !Word16
+               , trigger   :: !FFTrigger
+               , replay    :: !FFReplay
+               , periodic  :: !FFPeriodicEffect
+               }
+  | FFConstant { id        :: !Int16
+               , direction :: !Word16
+               , trigger   :: !FFTrigger
+               , replay    :: !FFReplay
+               , constant  :: !FFConstantEffect
+               }
+  | FFSpring { id        :: !Int16
+             , direction :: !Word16
+             , trigger   :: !FFTrigger
+             , replay    :: !FFReplay
+             , spring    :: !(Ptr FFConditionEffect)
+             }
+  | FFFriction { id        :: !Int16
+               , direction :: !Word16
+               , trigger   :: !FFTrigger
+               , replay    :: !FFReplay
+               , friction  :: !(Ptr FFConditionEffect)
+               }
+  | FFDamper { id        :: !Int16
+             , direction :: !Word16
+             , trigger   :: !FFTrigger
+             , replay    :: !FFReplay
+             }
+  | FFInertia { id        :: !Int16
+              , direction :: !Word16
+              , trigger   :: !FFTrigger
+              , replay    :: !FFReplay
+              }
+  | FFRamp  { id        :: !Int16
+            , direction :: !Word16
+            , trigger   :: !FFTrigger
+            , replay    :: !FFReplay
+            , ramp      :: !FFRampEffect
+            }
 
--- TODO: add FFContitionEffect
--- TODO: remember to hide this when reexporting
-class (Storable a) => FFEffectClass a
-
-instance FFEffectClass FFConstantEffect
-instance FFEffectClass FFRampEffect
-instance FFEffectClass FFPeriodicEffect
-instance FFEffectClass FFRumbleEffect
-instance FFEffectClass (Ptr FFConditionEffect)
-
-data FFEffect t where
-  FFEffect :: FFEffectClass t
-           => { ffEffectId        :: !Int16
-              , ffEffectDirection :: !Word16
-              , ffEffectTrigger   :: !FFTrigger
-              , ffEffectReplay    :: !FFReplay
-              , ffEffectEffect    :: t }
-           -> FFEffect t
-
-instance (FFEffectClass a) => Storable (FFEffect a) where
+instance Storable FFEffect where
   sizeOf    _ = (#alignment struct ff_effect)
   alignment _ = (#size struct ff_effect)
-  peek ptr    =
-    FFEffect
-      <$> (#peek struct ff_effect, id)        ptr
-      <*> (#peek struct ff_effect, direction) ptr
-      <*> (#peek struct ff_effect, trigger)   ptr
-      <*> (#peek struct ff_effect, replay)    ptr
-      <*> (#peek struct ff_effect, u)         ptr
+  peek ptr    = do
+    typ <- (#peek struct ff_effect, type)      ptr  :: IO Word16
+    idt <- (#peek struct ff_effect, id)        ptr
+    dir <- (#peek struct ff_effect, direction) ptr
+    trg <- (#peek struct ff_effect, trigger)   ptr
+    rpl <- (#peek struct ff_effect, replay)    ptr
+    case typ of
+      (#const FF_RUMBLE)   -> FFRumble   idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_PERIODIC) -> FFPeriodic idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_CONSTANT) -> FFConstant idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_SPRING)   -> FFSpring   idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_FRICTION) -> FFFriction idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_RAMP    ) -> FFRamp     idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_DAMPER)   -> return (FFDamper   idt dir trg rpl)
+      (#const FF_INERTIA)  -> return (FFInertia  idt dir trg rpl)
+      _                    -> error $ "Unknown event type: " ++ show typ
   poke ptr ef = do
-      (#poke struct ff_effect, id)        ptr (ffEffectId        ef)
-      (#poke struct ff_effect, direction) ptr (ffEffectDirection ef)
-      (#poke struct ff_effect, trigger)   ptr (ffEffectTrigger   ef)
-      (#poke struct ff_effect, replay)    ptr (ffEffectReplay    ef)
-      (#poke struct ff_effect, u)         ptr (ffEffectEffect    ef)
+      (#poke struct ff_effect, id)        ptr (id        ef)
+      (#poke struct ff_effect, direction) ptr (direction ef)
+      (#poke struct ff_effect, trigger)   ptr (trigger   ef)
+      (#poke struct ff_effect, replay )   ptr (replay    ef)
+      case ef of
+        FFRumble {}   -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_rumble)
+                      (#poke struct ff_effect, u)       ptr (rumble ef)
+        FFPeriodic {} -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_periodic)
+                      (#poke struct ff_effect, u)       ptr (periodic ef)
+        FFConstant {} -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_constant)
+                      (#poke struct ff_effect, u)       ptr (constant ef)
+        FFSpring {}   -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_spring)
+                      (#poke struct ff_effect, u)       ptr (spring ef)
+        FFFriction {} -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_friction)
+                      (#poke struct ff_effect, u)       ptr (friction ef)
+        FFDamper {}   -> (#poke struct ff_effect, type) ptr (unFFEffectType ff_damper)
+        FFInertia {}  -> (#poke struct ff_effect, type) ptr (unFFEffectType ff_inertia)
+        FFRamp {}     -> do
+                      (#poke struct ff_effect, type)    ptr (unFFEffectType ff_ramp)
+                      (#poke struct ff_effect, u)       ptr (ramp ef)
 
 -- | Synchronization events.
 

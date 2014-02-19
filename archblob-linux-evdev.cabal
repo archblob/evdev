@@ -13,7 +13,8 @@ cabal-version:      >=1.10
 
 library
   default-language: Haskell2010
-  exposed-modules:  Evdev.Uapi.Internal.Types,
+  exposed-modules:  Evdev.Uapi.Internal.Types.InputEvent,
+                    Evdev.Uapi.Internal.Types.ForceFeedback,
                     Evdev.Uapi.Internal.Device
 
   other-extensions: ForeignFunctionInterface
@@ -26,6 +27,7 @@ library
                     src/Evdev,
                     src/Evdev/Uapi,
                     src/Evdev/Uapi/Internal
+                    src/Evdev/Uapi/Internal/Types
 
   build-tools:      hsc2hs
 

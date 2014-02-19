@@ -9,7 +9,7 @@ module Evdev.Uapi.Internal.Device (
   , eviocGetKeyCode
   ) where
 
-import Evdev.Uapi.Internal.Types
+import Evdev.Uapi.Internal.Types.InputEvent
 
 import Foreign
 import Foreign.C.Error       (throwErrnoIfMinus1_)

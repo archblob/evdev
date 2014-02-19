@@ -13,54 +13,47 @@ import Prelude hiding (id, length)
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 data Effect =
-    Rumble {
-             id        :: !Int16
+    Rumble { id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            , rumble    :: !RumbleEffect
            }
-  | Periodic {
-               id        :: !Int16
+  | Periodic { id        :: !Int16
              , direction :: !Word16
              , trigger   :: !Trigger
              , replay    :: !Replay
              , periodic  :: !PeriodicEffect
              }
-  | Constant {
-               id        :: !Int16
+  | Constant { id        :: !Int16
              , direction :: !Word16
+             , trigger   :: !Trigger
              , replay    :: !Replay
              , constant  :: !ConstantEffect
              }
-  | Spring {
-             id        :: !Int16
+  | Spring { id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            , spring    :: !(Ptr ConditionEffect)
            }
-  | Friction {
-               id        :: !Int16
+  | Friction { id        :: !Int16
              , direction :: !Word16
              , trigger   :: !Trigger
              , replay    :: !Replay
              , friction  :: !(Ptr ConditionEffect)
              }
-  | Damper {
-             id        :: !Int16
+  | Damper { id        :: !Int16
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
            }
-  | Inertia {
-              id        :: !Int16
+  | Inertia { id        :: !Int16
             , direction :: !Word16
             , trigger   :: !Trigger
             , replay    :: !Replay
             }
-  | Ramp  {
-            id        :: !Int16
+  | Ramp  { id        :: !Int16
           , direction :: !Word16
           , trigger   :: !Trigger
           , replay    :: !Replay
@@ -238,7 +231,7 @@ instance Storable ConditionEffect where
 
 data PeriodicEffect =
   PeriodicEffect {
-    waveform               :: !Word16
+    waveform               :: Waveform
   , period                 :: !Word16
   , magnitude              :: !Int16
   , offset                 :: !Int16
@@ -251,10 +244,10 @@ data PeriodicEffect =
 instance Storable PeriodicEffect where
   sizeOf _    = (#size struct ff_periodic_effect)
   alignment _ = (#alignment struct ff_periodic_effect)
-  peek ptr    =
-    PeriodicEffect
-      <$> (#peek struct ff_periodic_effect, waveform)    ptr
-      <*> (#peek struct ff_periodic_effect, period)      ptr
+  peek ptr    = do
+    _waveform <- (#peek struct ff_periodic_effect, waveform) ptr :: IO Word16
+    PeriodicEffect (toWaveform _waveform)
+      <$> (#peek struct ff_periodic_effect, period)      ptr
       <*> (#peek struct ff_periodic_effect, magnitude)   ptr
       <*> (#peek struct ff_periodic_effect, offset)      ptr
       <*> (#peek struct ff_periodic_effect, phase)       ptr
@@ -262,13 +255,13 @@ instance Storable PeriodicEffect where
       <*> (#peek struct ff_periodic_effect, custom_len)  ptr
       <*> (#peek struct ff_periodic_effect, custom_data) ptr
   poke ptr pe = do
-      (#poke struct ff_periodic_effect, waveform)    ptr (waveform   pe)
-      (#poke struct ff_periodic_effect, period)      ptr (period     pe)
-      (#poke struct ff_periodic_effect, magnitude)   ptr (magnitude  pe)
-      (#poke struct ff_periodic_effect, offset)      ptr (offset     pe)
-      (#poke struct ff_periodic_effect, phase)       ptr (phase      pe)
-      (#poke struct ff_periodic_effect, envelope)    ptr (periodicEffectEnvelope   pe)
-      (#poke struct ff_periodic_effect, custom_len)  ptr (customLen  pe)
+      (#poke struct ff_periodic_effect, waveform)    ptr (fromWaveform (waveform pe))
+      (#poke struct ff_periodic_effect, period)      ptr (period pe)
+      (#poke struct ff_periodic_effect, magnitude)   ptr (magnitude pe)
+      (#poke struct ff_periodic_effect, offset)      ptr (offset pe)
+      (#poke struct ff_periodic_effect, phase)       ptr (phase pe)
+      (#poke struct ff_periodic_effect, envelope)    ptr (periodicEffectEnvelope pe)
+      (#poke struct ff_periodic_effect, custom_len)  ptr (customLen pe)
       (#poke struct ff_periodic_effect, custom_data) ptr (customData pe)
 
 data RumbleEffect =
@@ -302,17 +295,29 @@ newtype EffectType = EffectType { unEffectType :: Word16 } deriving Eq
  , ff_effect_max   = FF_EFFECT_MAX
  }
 
-newtype PeriodicEffectType = PeriodicEffectType Word16 deriving Eq
-#{enum PeriodicEffectType, PeriodicEffectType
- , ff_square       = FF_SQUARE
- , ff_triangle     = FF_TRIANGLE
- , ff_sine         = FF_SINE
- , ff_saw_up       = FF_SAW_UP
- , ff_saw_down     = FF_SAW_DOWN
- , ff_custom       = FF_CUSTOM
- , ff_waveform_min = FF_WAVEFORM_MIN
- , ff_waveform_max = FF_WAVEFORM_MAX
- }
+data Waveform =
+  Square | Triangle | Sine | SawUp | SawDown | Custom deriving (Eq, Show)
+
+toWaveform :: Word16 -> Waveform
+toWaveform wf =
+  case wf of
+    (#const FF_SQUARE)   -> Square
+    (#const FF_TRIANGLE) -> Triangle
+    (#const FF_SINE)     -> Sine
+    (#const FF_SAW_UP)   -> SawUp
+    (#const FF_SAW_DOWN) -> SawDown
+    (#const FF_CUSTOM)   -> Custom
+    _                    -> error $ "Unknown waveform type: " ++ show wf
+
+fromWaveform :: Waveform -> Word16
+fromWaveform wf =
+  case wf of
+    Square   -> (#const FF_SQUARE)
+    Triangle -> (#const FF_TRIANGLE)
+    Sine     -> (#const FF_SINE)
+    SawUp    -> (#const FF_SAW_UP)
+    SawDown  -> (#const FF_SAW_DOWN)
+    Custom   -> (#const FF_CUSTOM)
 
 newtype DeviceProperties = DeviceProperties Word16 deriving Eq
 #{enum DeviceProperties, DeviceProperties

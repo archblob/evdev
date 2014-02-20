@@ -13,9 +13,40 @@ import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
 
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
+{-
+  www.kernel.org/doc/Documentation/input/input.txt
+
+  Should you want to add event device support into any application (X, gpm,
+  svgalib ...) I <vojtech@ucw.cz> will be happy to provide you any help I
+  can. Here goes a description of the current state of things, which is going
+  to be extended, but not changed incompatibly as time goes:
+
+  You can use blocking and nonblocking reads, also select() on the
+  /dev/input/eventX devices, and you'll always get a whole number of input
+  events on a read. Their layout is:
+
+  struct input_event {
+    struct timeval time;
+    unsigned short type;
+    unsigned short code;
+    unsigned int value;
+  };
+
+    'time' is the timestamp, it returns the time at which the event happened.
+  Type is for example EV_REL for relative moment, EV_KEY for a keypress or
+  release. More types are defined in include/linux/input.h.
+
+    'code' is event code, for example REL_X or KEY_BACKSPACE, again a complete
+  list is in include/linux/input.h.
+
+    'value' is the value the event carries. Either a relative change for
+  EV_REL, absolute new value for EV_ABS (joysticks ...), or 0 for EV_KEY for
+  release, 1 for keypress and 2 for autorepeat.
+-}
+
 data InputEvent =
     SynEvent { time :: !UnixTime, syncCode :: !SyncCode }
-  | KeyEvent  { time :: !UnixTime, keyCode :: !KeyCode}
+  | KeyEvent  { time :: !UnixTime, keyCode :: !KeyCode, value :: !Int32}
   | RelEvent  { time :: !UnixTime, relAxesCode :: !RelAxesCode, value :: !Int32}
   | AbsEvent  { time :: !UnixTime, absAxesCode :: !AbsAxesCode, value :: !Int32}
   | MscEvent  { time :: !UnixTime, mscCode :: !MSCCode}
@@ -38,7 +69,7 @@ instance Storable InputEvent where
     code   <- (#peek struct input_event, code)  ptr :: IO Word16
     case _type of
       (#const EV_SYN) -> return $ SynEvent _time (SyncCode code)
-      (#const EV_KEY) -> return $ KeyEvent _time (KeyCode code)
+      (#const EV_KEY) -> return $ KeyEvent _time (KeyCode code) _value
       (#const EV_REL) -> return $ RelEvent _time (RelAxesCode code) _value
       (#const EV_ABS) -> return $ AbsEvent _time (AbsAxesCode code) _value
       (#const EV_MSC) -> return $ MscEvent _time (MSCCode code)

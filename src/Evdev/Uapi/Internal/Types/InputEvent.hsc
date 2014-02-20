@@ -34,7 +34,7 @@ instance Storable InputEvent where
       (#poke struct input_event, code)  ptr (code  inpEv)
       (#poke struct input_event, value) ptr (value inpEv)
 
-newtype EventType = EventType Word16 deriving (Eq, Show)
+newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
 #{enum EventType, EventType
  , ev_syn       = EV_SYN
  , ev_key       = EV_KEY
@@ -52,7 +52,7 @@ newtype EventType = EventType Word16 deriving (Eq, Show)
  , ev_cnt       = EV_CNT
  }
 
-newtype SyncType = SyncType Word16 deriving (Eq, Show)
+newtype SyncType = SyncType { unSyncType :: Word16 } deriving (Eq, Show)
 #{enum SyncType, SyncType
  , syn_report    = SYN_REPORT
  , syn_config    = SYN_CONFIG
@@ -62,7 +62,7 @@ newtype SyncType = SyncType Word16 deriving (Eq, Show)
  , syn_cnt       = SYN_CNT
  }
 
-newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
+newtype RelAxes = RelAxes { unRelAxes :: Word16 } deriving (Eq, Show)
 #{enum RelAxes, RelAxes
  , rel_x      = REL_X
  , rel_y      = REL_Y
@@ -78,7 +78,7 @@ newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
  , rel_cnt    = REL_CNT
  }
 
-newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
+newtype AbsAxes = AbsAxes { unAbsAxes :: Word16 } deriving (Eq, Show)
 #{enum AbsAxes, AbsAxes
  , abs_x              = ABS_X
  , abs_y              = ABS_Y
@@ -125,7 +125,7 @@ newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
  , abs_cnt            = ABS_CNT
  }
 
-newtype SWType = SWType Word16 deriving (Eq, Show)
+newtype SWType = SWType { unSWType :: Word16 } deriving (Eq, Show)
 #{enum SWType, SWType
  , sw_lid                  = SW_LID
  , sw_tablet_mode          = SW_TABLET_MODE
@@ -146,7 +146,7 @@ newtype SWType = SWType Word16 deriving (Eq, Show)
  , sw_cnt                  = SW_CNT
  }
 
-newtype MSCType = MSCType Word16 deriving (Eq, Show)
+newtype MSCType = MSCType { unMSCType :: Word16 } deriving (Eq, Show)
 #{enum MSCType, MSCType
  , msc_serial    = MSC_SERIAL
  , msc_pulseled  = MSC_PULSELED
@@ -158,7 +158,7 @@ newtype MSCType = MSCType Word16 deriving (Eq, Show)
  , msc_cnt       = MSC_CNT
  }
 
-newtype LEDType = LEDType Word16 deriving (Eq, Show)
+newtype LEDType = LEDType { unLEDType :: Word16 } deriving (Eq, Show)
 #{enum LEDType, LEDType
  , led_numl     = LED_NUML
  , led_capsl    = LED_CAPSL
@@ -175,7 +175,7 @@ newtype LEDType = LEDType Word16 deriving (Eq, Show)
  , led_cnt      = LED_CNT
  }
 
-newtype Key = Key Word16 deriving (Eq, Show)
+newtype Key = Key { unKey :: Word16 } deriving (Eq, Show)
 #{enum Key, Key
  , key_reserved         = KEY_RESERVED
  , key_esc              = KEY_ESC
@@ -686,23 +686,23 @@ newtype Key = Key Word16 deriving (Eq, Show)
  , key_cnt              = KEY_CNT
  }
 
-newtype MTTool = MTTool Word8 deriving Eq
+newtype MTTool = MTTool { unMTTool :: Word8 } deriving Eq
 #{enum MTTool, MTTool
  , mt_tool_finger = MT_TOOL_FINGER
  , mt_tool_pen    = MT_TOOL_PEN
  , mt_tool_max    = MT_TOOL_MAX
  }
 
-newtype Rep = Rep Word8 deriving Eq
-#{enum Rep, Rep
+newtype RepType = RepType { unRepType :: Word8 } deriving Eq
+#{enum RepType, RepType
  , rep_delay  = REP_DELAY
  , rep_period = REP_PERIOD
  , rep_max    = REP_MAX
  , rep_cnt    = REP_CNT
  }
 
-newtype Sound = Sound Word8 deriving Eq
-#{enum Sound, Sound
+newtype SoundType = SoundType { unSoundType :: Word8 } deriving Eq
+#{enum SoundType, SoundType
  , snd_click = SND_CLICK
  , snd_bell  = SND_BELL
  , snd_tone  = SND_TONE

@@ -9,7 +9,6 @@ module Evdev.Uapi.Internal.Device (
   , eviocGetKeyCode
   ) where
 
-import Evdev.Uapi.Internal.Types.InputEvent
 import Evdev.Uapi.Internal.Types.Ioctl
 
 import Foreign

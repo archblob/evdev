@@ -327,8 +327,8 @@ newtype DeviceProperties = DeviceProperties Word16 deriving Eq
  , ff_cnt          = FF_CNT
  }
 
-newtype FFStatus = FFStatus Word8 deriving Eq
-#{enum FFStatus, FFStatus
+newtype StatusCode = StatusCode { unStatusCode :: Word16 } deriving (Eq, Show)
+#{enum StatusCode, StatusCode
  , ff_status_stopped = FF_STATUS_STOPPED
  , ff_status_playing = FF_STATUS_PLAYING
  , ff_status_max     = FF_STATUS_MAX

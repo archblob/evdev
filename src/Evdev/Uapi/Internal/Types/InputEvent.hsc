@@ -1,38 +1,92 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
 module Evdev.Uapi.Internal.Types.InputEvent where
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32)
 import Data.UnixTime       (UnixTime(..))
-import Data.Word           (Word8, Word16)
+import Data.Word           (Word16)
 import Foreign.Storable
 import Prelude hiding (id)
+
+import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
 
 #include <linux/input.h>
 
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-data InputEvent = InputEvent {
-      time  :: !UnixTime
-    , _type :: !Word16
-    , code  :: !Word16
-    , value :: !Int32
-    } deriving (Show, Eq)
+data InputEvent =
+    SynEvent { time :: !UnixTime, syncCode :: !SyncCode }
+  | KeyEvent  { time :: !UnixTime, keyCode :: !KeyCode}
+  | RelEvent  { time :: !UnixTime, relAxesCode :: !RelAxesCode, value :: !Int32}
+  | AbsEvent  { time :: !UnixTime, absAxesCode :: !AbsAxesCode, value :: !Int32}
+  | MscEvent  { time :: !UnixTime, mscCode :: !MSCCode}
+  | SwEvent   { time :: !UnixTime, swCode :: !SWCode }
+  | LedEvent  { time :: !UnixTime, ledCode :: !LEDCode }
+  | SndEvent  { time :: !UnixTime, sndCode :: !SndCode}
+  | RepEvent  { time :: !UnixTime, repCode :: !RepCode}
+  | FFEvent   { time :: !UnixTime }
+  | PwrEvent  { time :: !UnixTime }
+  | FFStatusEvent { time :: !UnixTime, ffStatus :: !FF.StatusCode}
+    deriving (Eq, Show)
 
 instance Storable InputEvent where
   sizeOf _    = (#size struct input_event)
   alignment _ = (#alignment struct input_event)
-  peek ptr    =
-    InputEvent
-      <$> (#peek struct input_event, time)  ptr
-      <*> (#peek struct input_event, type)  ptr
-      <*> (#peek struct input_event, code)  ptr
-      <*> (#peek struct input_event, value) ptr
-  poke ptr inpEv = do
-      (#poke struct input_event, time)  ptr (time  inpEv)
-      (#poke struct input_event, type)  ptr (_type  inpEv)
-      (#poke struct input_event, code)  ptr (code  inpEv)
-      (#poke struct input_event, value) ptr (value inpEv)
+  peek ptr    = do
+    _type  <- (#peek struct input_event, type)  ptr :: IO Word16
+    _time  <- (#peek struct input_event, time)  ptr :: IO UnixTime
+    _value <- (#peek struct input_event, value) ptr :: IO Int32
+    code   <- (#peek struct input_event, code)  ptr :: IO Word16
+    case _type of
+      (#const EV_SYN) -> return $ SynEvent _time (SyncCode code)
+      (#const EV_KEY) -> return $ KeyEvent _time (KeyCode code)
+      (#const EV_REL) -> return $ RelEvent _time (RelAxesCode code) _value
+      (#const EV_ABS) -> return $ AbsEvent _time (AbsAxesCode code) _value
+      (#const EV_MSC) -> return $ MscEvent _time (MSCCode code)
+      (#const EV_SW)  -> return $ SwEvent  _time (SWCode code)
+      (#const EV_LED) -> return $ LedEvent _time (LEDCode code)
+      (#const EV_SND) -> return $ SndEvent _time (SndCode code)
+      (#const EV_REP) -> return $ RepEvent _time (RepCode code)
+      (#const EV_FF)  -> return $ FFEvent  _time
+      (#const EV_PWR) -> return $ PwrEvent _time
+      (#const EV_FF_STATUS) -> return $ FFStatusEvent _time (FF.StatusCode code)
+      _ -> error $ "Unknown event_type: " ++ show _type
+  poke ptr ev = do
+      (#poke struct input_event, time) ptr (time ev)
+      case ev of
+        SynEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_syn)
+                (#poke struct input_event, code) ptr (unSyncCode syncCode)
+        KeyEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_key)
+                (#poke struct input_event, code) ptr (unKeyCode keyCode)
+        AbsEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_abs)
+                (#poke struct input_event, code) ptr (unAbsAxesCode absAxesCode)
+                (#poke struct input_event, value) ptr value
+        RelEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_rel)
+                (#poke struct input_event, code) ptr (unRelAxesCode relAxesCode)
+                (#poke struct input_event, value) ptr value
+        MscEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_msc)
+                (#poke struct input_event, code) ptr (unMSCCode mscCode)
+        SwEvent  {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_sw)
+                (#poke struct input_event, code) ptr (unSWCode swCode)
+        LedEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_led)
+                (#poke struct input_event, code) ptr (unLEDCode ledCode)
+        SndEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_snd)
+                (#poke struct input_event, code) ptr (unSndCode sndCode)
+        RepEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_rep)
+                (#poke struct input_event, code) ptr (unRepCode repCode)
+        FFEvent  {} -> (#poke struct input_event, type) ptr (unEventType ev_ff)
+        PwrEvent {} -> (#poke struct input_event, type) ptr (unEventType ev_pwr)
+        FFStatusEvent {..} -> do
+                      (#poke struct input_event, type) ptr (unEventType ev_ff_status)
+                      (#poke struct input_event, code) ptr (FF.unStatusCode ffStatus)
 
 newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
 #{enum EventType, EventType
@@ -52,8 +106,8 @@ newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
  , ev_cnt       = EV_CNT
  }
 
-newtype SyncType = SyncType { unSyncType :: Word16 } deriving (Eq, Show)
-#{enum SyncType, SyncType
+newtype SyncCode = SyncCode { unSyncCode :: Word16 } deriving (Eq, Show)
+#{enum SyncCode, SyncCode
  , syn_report    = SYN_REPORT
  , syn_config    = SYN_CONFIG
  , syn_mt_report = SYN_MT_REPORT
@@ -62,8 +116,8 @@ newtype SyncType = SyncType { unSyncType :: Word16 } deriving (Eq, Show)
  , syn_cnt       = SYN_CNT
  }
 
-newtype RelAxes = RelAxes { unRelAxes :: Word16 } deriving (Eq, Show)
-#{enum RelAxes, RelAxes
+newtype RelAxesCode = RelAxesCode { unRelAxesCode :: Word16 } deriving (Eq, Show)
+#{enum RelAxesCode, RelAxesCode
  , rel_x      = REL_X
  , rel_y      = REL_Y
  , rel_z      = REL_Z
@@ -78,8 +132,8 @@ newtype RelAxes = RelAxes { unRelAxes :: Word16 } deriving (Eq, Show)
  , rel_cnt    = REL_CNT
  }
 
-newtype AbsAxes = AbsAxes { unAbsAxes :: Word16 } deriving (Eq, Show)
-#{enum AbsAxes, AbsAxes
+newtype AbsAxesCode = AbsAxesCode { unAbsAxesCode :: Word16 } deriving (Eq, Show)
+#{enum AbsAxesCode, AbsAxesCode
  , abs_x              = ABS_X
  , abs_y              = ABS_Y
  , abs_z              = ABS_Z
@@ -125,8 +179,8 @@ newtype AbsAxes = AbsAxes { unAbsAxes :: Word16 } deriving (Eq, Show)
  , abs_cnt            = ABS_CNT
  }
 
-newtype SWType = SWType { unSWType :: Word16 } deriving (Eq, Show)
-#{enum SWType, SWType
+newtype SWCode = SWCode { unSWCode :: Word16 } deriving (Eq, Show)
+#{enum SWCode, SWCode
  , sw_lid                  = SW_LID
  , sw_tablet_mode          = SW_TABLET_MODE
  , sw_headphone_insert     = SW_HEADPHONE_INSERT
@@ -146,8 +200,8 @@ newtype SWType = SWType { unSWType :: Word16 } deriving (Eq, Show)
  , sw_cnt                  = SW_CNT
  }
 
-newtype MSCType = MSCType { unMSCType :: Word16 } deriving (Eq, Show)
-#{enum MSCType, MSCType
+newtype MSCCode = MSCCode { unMSCCode :: Word16 } deriving (Eq, Show)
+#{enum MSCCode, MSCCode
  , msc_serial    = MSC_SERIAL
  , msc_pulseled  = MSC_PULSELED
  , msc_gesture   = MSC_GESTURE
@@ -158,8 +212,8 @@ newtype MSCType = MSCType { unMSCType :: Word16 } deriving (Eq, Show)
  , msc_cnt       = MSC_CNT
  }
 
-newtype LEDType = LEDType { unLEDType :: Word16 } deriving (Eq, Show)
-#{enum LEDType, LEDType
+newtype LEDCode = LEDCode { unLEDCode :: Word16 } deriving (Eq, Show)
+#{enum LEDCode, LEDCode
  , led_numl     = LED_NUML
  , led_capsl    = LED_CAPSL
  , led_scrolll  = LED_SCROLLL
@@ -175,8 +229,8 @@ newtype LEDType = LEDType { unLEDType :: Word16 } deriving (Eq, Show)
  , led_cnt      = LED_CNT
  }
 
-newtype Key = Key { unKey :: Word16 } deriving (Eq, Show)
-#{enum Key, Key
+newtype KeyCode = KeyCode { unKeyCode :: Word16 } deriving (Eq, Show)
+#{enum KeyCode, KeyCode
  , key_reserved         = KEY_RESERVED
  , key_esc              = KEY_ESC
  , key_1                = KEY_1
@@ -686,23 +740,23 @@ newtype Key = Key { unKey :: Word16 } deriving (Eq, Show)
  , key_cnt              = KEY_CNT
  }
 
-newtype MTTool = MTTool { unMTTool :: Word8 } deriving Eq
-#{enum MTTool, MTTool
+newtype MTToolCode = MTToolCode { unMTToolCode :: Word16 } deriving (Eq, Show)
+#{enum MTToolCode, MTToolCode
  , mt_tool_finger = MT_TOOL_FINGER
  , mt_tool_pen    = MT_TOOL_PEN
  , mt_tool_max    = MT_TOOL_MAX
  }
 
-newtype RepType = RepType { unRepType :: Word8 } deriving Eq
-#{enum RepType, RepType
+newtype RepCode = RepCode { unRepCode :: Word16 } deriving (Eq, Show)
+#{enum RepCode, RepCode
  , rep_delay  = REP_DELAY
  , rep_period = REP_PERIOD
  , rep_max    = REP_MAX
  , rep_cnt    = REP_CNT
  }
 
-newtype SoundType = SoundType { unSoundType :: Word8 } deriving Eq
-#{enum SoundType, SoundType
+newtype SndCode = SndCode { unSndCode :: Word16 } deriving (Eq, Show)
+#{enum SndCode, SndCode
  , snd_click = SND_CLICK
  , snd_bell  = SND_BELL
  , snd_tone  = SND_TONE

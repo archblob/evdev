@@ -2,10 +2,9 @@
 module Evdev.Uapi.Internal.Types.InputEvent where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.Int            (Int32, Int16)
+import Data.Int            (Int32)
 import Data.UnixTime       (UnixTime(..))
-import Data.Word           (Word8, Word16, Word32)
-import Foreign.Ptr
+import Data.Word           (Word8, Word16)
 import Foreign.Storable
 import Prelude hiding (id)
 
@@ -14,10 +13,10 @@ import Prelude hiding (id)
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 data InputEvent = InputEvent {
-      evTime  :: !UnixTime
-    , evType  :: !Word16
-    , evCode  :: !Word16
-    , evValue :: !Int32
+      time  :: !UnixTime
+    , _type :: !Word16
+    , code  :: !Word16
+    , value :: !Int32
     } deriving (Show, Eq)
 
 instance Storable InputEvent where
@@ -30,92 +29,10 @@ instance Storable InputEvent where
       <*> (#peek struct input_event, code)  ptr
       <*> (#peek struct input_event, value) ptr
   poke ptr inpEv = do
-      (#poke struct input_event, time)  ptr (evTime  inpEv)
-      (#poke struct input_event, type)  ptr (evType  inpEv)
-      (#poke struct input_event, code)  ptr (evCode  inpEv)
-      (#poke struct input_event, value) ptr (evValue inpEv)
-
-data InputID =
-  InputID {
-    inpBustype :: !Word16
-  , inpVendor  :: !Word16
-  , inpProduct :: !Word16
-  , inpVersion :: !Word16
-  } deriving (Eq, Show)
-
--- TODO: this is not correct
-data InputKeymapEntry =
-  InputKeymapEntry {
-    ikeFlags    :: !Word8
-  , ikeLen      :: !Word8
-  , ikeIndex    :: !Word16
-  , ikeKeycode  :: !Word32
-  , ikeScancode :: !(Ptr Word8)
-  }
-
-instance Storable InputKeymapEntry where
-  sizeOf _    = (#size struct input_keymap_entry)
-  alignment _ = (#alignment struct input_keymap_entry)
-  peek ptr    =
-    InputKeymapEntry
-      <$> (#peek struct input_keymap_entry, flags)    ptr
-      <*> (#peek struct input_keymap_entry, len)      ptr
-      <*> (#peek struct input_keymap_entry, index)    ptr
-      <*> (#peek struct input_keymap_entry, keycode)  ptr
-      <*> (#peek struct input_keymap_entry, scancode) ptr
-  poke ptr ike = do
-      (#poke struct input_keymap_entry, flags)    ptr (ikeFlags    ike)
-      (#poke struct input_keymap_entry, len)      ptr (ikeLen      ike)
-      (#poke struct input_keymap_entry, index)    ptr (ikeIndex    ike)
-      (#poke struct input_keymap_entry, keycode)  ptr (ikeKeycode  ike)
-      (#poke struct input_keymap_entry, scancode) ptr (ikeScancode ike)
-
-instance Storable InputID where
-  sizeOf _    = (#size struct input_id)
-  alignment _ = (#alignment struct input_id)
-  peek ptr    =
-    InputID
-      <$> (#peek struct input_id, bustype) ptr
-      <*> (#peek struct input_id, vendor)  ptr
-      <*> (#peek struct input_id, product) ptr
-      <*> (#peek struct input_id, version) ptr
-  poke ptr inpID = do
-      (#poke struct input_id, bustype) ptr (inpBustype inpID)
-      (#poke struct input_id, vendor)  ptr (inpVendor  inpID)
-      (#poke struct input_id, product) ptr (inpProduct inpID)
-      (#poke struct input_id, version) ptr (inpVersion inpID)
-
-data InputAbsInfo =
-  InputAbsInfo {
-    absiValue      :: !Int32
-  , absiMinimum    :: !Int32
-  , absiMaximum    :: !Int32
-  , absiFuzz       :: !Int32
-  , absiFlat       :: !Int32
-  , absiResolution :: !Int32
-  } deriving (Eq, Show)
-
-instance Storable InputAbsInfo where
-  sizeOf _    = (#size struct input_absinfo)
-  alignment _ = (#alignment struct input_absinfo)
-  peek ptr    =
-    InputAbsInfo
-      <$> (#peek struct input_absinfo, value)      ptr
-      <*> (#peek struct input_absinfo, minimum)    ptr
-      <*> (#peek struct input_absinfo, maximum)    ptr
-      <*> (#peek struct input_absinfo, fuzz)       ptr
-      <*> (#peek struct input_absinfo, flat)       ptr
-      <*> (#peek struct input_absinfo, resolution) ptr
-  poke ptr absInf = do
-      (#poke struct input_absinfo, value)      ptr (absiValue      absInf)
-      (#poke struct input_absinfo, minimum)    ptr (absiMinimum    absInf)
-      (#poke struct input_absinfo, maximum)    ptr (absiMaximum    absInf)
-      (#poke struct input_absinfo, fuzz)       ptr (absiFuzz       absInf)
-      (#poke struct input_absinfo, flat)       ptr (absiFlat       absInf)
-      (#poke struct input_absinfo, resolution) ptr (absiResolution absInf)
-
-
--- | Event types
+      (#poke struct input_event, time)  ptr (time  inpEv)
+      (#poke struct input_event, type)  ptr (_type  inpEv)
+      (#poke struct input_event, code)  ptr (code  inpEv)
+      (#poke struct input_event, value) ptr (value inpEv)
 
 newtype EventType = EventType Word16 deriving (Eq, Show)
 #{enum EventType, EventType
@@ -135,9 +52,6 @@ newtype EventType = EventType Word16 deriving (Eq, Show)
  , ev_cnt       = EV_CNT
  }
 
-
--- | Synchronization events.
-
 newtype SyncType = SyncType Word16 deriving (Eq, Show)
 #{enum SyncType, SyncType
  , syn_report    = SYN_REPORT
@@ -147,8 +61,6 @@ newtype SyncType = SyncType Word16 deriving (Eq, Show)
  , syn_max       = SYN_MAX
  , syn_cnt       = SYN_CNT
  }
-
--- | Relative axes.
 
 newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
 #{enum RelAxes, RelAxes
@@ -165,8 +77,6 @@ newtype RelAxes = RelAxes Word16 deriving (Eq, Show)
  , rel_max    = REL_MAX
  , rel_cnt    = REL_CNT
  }
-
--- | Absolute axes.
 
 newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
 #{enum AbsAxes, AbsAxes
@@ -214,9 +124,6 @@ newtype AbsAxes = AbsAxes Word16 deriving (Eq, Show)
  , abs_max            = ABS_MAX
  , abs_cnt            = ABS_CNT
  }
-
-
--- | Switch events.
 
 newtype SWType = SWType Word16 deriving (Eq, Show)
 #{enum SWType, SWType
@@ -779,16 +686,12 @@ newtype Key = Key Word16 deriving (Eq, Show)
  , key_cnt              = KEY_CNT
  }
 
--- | MTTool types
-
 newtype MTTool = MTTool Word8 deriving Eq
 #{enum MTTool, MTTool
  , mt_tool_finger = MT_TOOL_FINGER
  , mt_tool_pen    = MT_TOOL_PEN
  , mt_tool_max    = MT_TOOL_MAX
  }
-
--- | Autorepeat values
 
 newtype Rep = Rep Word8 deriving Eq
 #{enum Rep, Rep
@@ -797,8 +700,6 @@ newtype Rep = Rep Word8 deriving Eq
  , rep_max    = REP_MAX
  , rep_cnt    = REP_CNT
  }
-
--- | Sounds
 
 newtype Sound = Sound Word8 deriving Eq
 #{enum Sound, Sound
@@ -809,47 +710,3 @@ newtype Sound = Sound Word8 deriving Eq
  , snd_cnt   = SND_CNT
  }
 
- -- | IDs
-
-newtype DeviceID = DeviceID Word8 deriving Eq
-#{enum DeviceID, DeviceID
- , id_bus     = ID_BUS
- , id_vendor  = ID_VENDOR
- , id_product = ID_PRODUCT
- , id_version = ID_VERSION
- }
-
-newtype BusID = BusID Word8 deriving Eq
-#{enum BusID, BusID
- , bus_pci       = BUS_PCI
- , bus_isapnp    = BUS_ISAPNP
- , bus_usb       = BUS_USB
- , bus_hil       = BUS_HIL
- , bus_bluetooth = BUS_BLUETOOTH
- , bus_virtual   = BUS_VIRTUAL
- , bus_isa       = BUS_ISA
- , bus_i8042     = BUS_I8042
- , bus_xtkbd     = BUS_XTKBD
- , bus_rs232     = BUS_RS232
- , bus_gameport  = BUS_GAMEPORT
- , bus_parport   = BUS_PARPORT
- , bus_amiga     = BUS_AMIGA
- , bus_adb       = BUS_ADB
- , bus_i2c       = BUS_I2C
- , bus_host      = BUS_HOST
- , bus_gsc       = BUS_GSC
- , bus_atari     = BUS_ATARI
- , bus_spi       = BUS_SPI
- }
-
--- | Device properties and quirks
-
-newtype InputProperty = InputProperty Word8 deriving Eq
-#{enum InputProperty, InputProperty
- , input_prop_pointer   = INPUT_PROP_POINTER
- , input_prop_direct    = INPUT_PROP_DIRECT
- , input_prop_buttonpad = INPUT_PROP_BUTTONPAD
- , input_prop_semi_mt   = INPUT_PROP_SEMI_MT
- , input_prop_max       = INPUT_PROP_MAX
- , input_prop_cnt       = INPUT_PROP_CNT
- }

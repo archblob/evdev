@@ -5,7 +5,6 @@ import Data.Int            (Int32)
 import Data.UnixTime       (UnixTime(..))
 import Data.Word           (Word16)
 import Foreign.Storable
-import Prelude hiding (id)
 
 import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
 
@@ -44,19 +43,160 @@ import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
   release, 1 for keypress and 2 for autorepeat.
 -}
 
+{-
+  www.kernel.org/doc/Documentation/input/ff.txt
+  
+  3.4 Controlling the playback of effects
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Control of playing is done with write(). Below is an example:
+
+  #include <linux/input.h>
+  #include <unistd.h>
+
+    struct input_event play;
+    struct input_event stop;
+    struct ff_effect effect;
+    int fd;
+    ...
+    fd = open("/dev/input/eventXX", O_RDWR);
+    ...
+    /* Play three times */
+    play.type = EV_FF;
+    play.code = effect.id;
+    play.value = 3;
+    write(fd, (const void*) &play, sizeof(play));
+    ...
+    /* Stop an effect */
+    stop.type = EV_FF;
+    stop.code = effect.id;
+    stop.value = 0;
+
+    write(fd, (const void*) &play, sizeof(stop));
+
+  3.5 Setting the gain
+  ~~~~~~~~~~~~~~~~~~~~
+  Not all devices have the same strength. Therefore, users should set a gain
+  factor depending on how strong they want effects to be. This setting is
+  persistent across access to the driver.
+
+  /* Set the gain of the device */
+  int gain;		/* between 0 and 100 */
+  struct input_event ie;	/* structure used to communicate with the driver */
+
+  ie.type = EV_FF;
+  ie.code = FF_GAIN;
+  ie.value = 0xFFFFUL * gain / 100;
+
+  if (write(fd, &ie, sizeof(ie)) == -1)
+    perror("set gain");
+
+  3.6 Enabling/Disabling autocenter
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  The autocenter feature quite disturbs the rendering of effects in my opinion,
+  and I think it should be an effect, which computation depends on the game
+  type. But you can enable it if you want.
+
+  int autocenter;		/* between 0 and 100 */
+  struct input_event ie;
+
+  ie.type = EV_FF;
+  ie.code = FF_AUTOCENTER;
+  ie.value = 0xFFFFUL * autocenter / 100;
+
+  if (write(fd, &ie, sizeof(ie)) == -1)
+    perror("set auto-center");
+
+  A value of 0 means "no auto-center".
+
+  3.7 Dynamic update of an effect
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Proceed as if you wanted to upload a new effect, except that instead of
+  setting the id field to -1, you set it to the wanted effect id.
+  Normally, the effect is not stopped and restarted. However, depending on the
+  type of device, not all parameters can be dynamically updated. For example,
+  the direction of an effect cannot be updated with iforce devices. In this
+  case, the driver stops the effect, up-load it, and restart it.
+
+  Therefore it is recommended to dynamically change direction while the effect
+  is playing only when it is ok to restart the effect with a replay count of 1.
+
+  3.8 Information about the status of effects
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Every time the status of an effect is changed, an event is sent. The values
+  and meanings of the fields of the event are as follows:
+
+  struct input_event {
+  /* When the status of the effect changed */
+  	struct timeval time;
+
+  /* Set to EV_FF_STATUS */
+  	unsigned short type;
+
+  /* Contains the id of the effect */
+  	unsigned short code;
+
+  /* Indicates the status */
+  	unsigned int value;
+  };
+
+  FF_STATUS_STOPPED	The effect stopped playing
+  FF_STATUS_PLAYING	The effect started to play
+
+  NOTE: Status feedback is only supported by iforce driver. If you have
+        a really good reason to use this, please contact
+        linux-joystick@atrey.karlin.mff.cuni.cz or anssi.hannula@gmail.com
+        so that support for it can be added to the rest of the drivers.
+-}
+
 data InputEvent =
-    SynEvent { time :: !UnixTime, syncCode :: !SyncCode }
-  | KeyEvent  { time :: !UnixTime, keyCode :: !KeyCode, value :: !Int32}
-  | RelEvent  { time :: !UnixTime, relAxesCode :: !RelAxesCode, value :: !Int32}
-  | AbsEvent  { time :: !UnixTime, absAxesCode :: !AbsAxesCode, value :: !Int32}
-  | MscEvent  { time :: !UnixTime, mscCode :: !MSCCode}
-  | SwEvent   { time :: !UnixTime, swCode :: !SWCode }
-  | LedEvent  { time :: !UnixTime, ledCode :: !LEDCode }
-  | SndEvent  { time :: !UnixTime, sndCode :: !SndCode}
-  | RepEvent  { time :: !UnixTime, repCode :: !RepCode}
-  | FFEvent   { time :: !UnixTime }
-  | PwrEvent  { time :: !UnixTime }
-  | FFStatusEvent { time :: !UnixTime, ffStatus :: !FF.StatusCode}
+    SynEvent  { time     :: !UnixTime
+              , synCode  :: !SynCode 
+              , synValue :: !Int32 
+              }
+  | KeyEvent  { time     :: !UnixTime
+              , keyCode  :: !KeyCode
+              , keyValue :: KeyValue
+              }
+  | RelEvent  { time        :: !UnixTime
+              , relAxesCode :: !RelAxesCode
+              , relValue    :: !Int32
+              }
+  | AbsEvent  { time        :: !UnixTime
+              , absAxesCode :: !AbsAxesCode
+              , absValue    :: !Int32
+              }
+  | MscEvent  { time     :: !UnixTime
+              , mscCode  :: !MSCCode
+              , mscValue :: !Int32
+              }
+  | SwEvent   { time    :: !UnixTime
+              , swCode  :: !SWCode 
+              , swValue :: !Int32
+              }
+  | LedEvent  { time     :: !UnixTime
+              , ledCode  :: !LEDCode
+              , ledValue :: !Int32
+              }
+  | SndEvent  { time     :: !UnixTime
+              , sndCode  :: !SndCode
+              , sndValue :: !Int32
+              }
+  | RepEvent  { time     :: !UnixTime
+              , repCode  :: !RepCode
+              , repValue :: !Int32
+              }
+  | FFEvent   { time    :: !UnixTime
+              , ffCode  :: !Word16
+              , ffValue :: !Int32
+              }
+  | PwrEvent  { time     :: !UnixTime
+              , pwrCode  :: !Word16
+              , pwrValue :: !Int32
+              }
+  | FFStatusEvent { time :: !UnixTime
+                  , statusCode :: !Word16 -- id of the effect that changed status
+                  , statusValue :: !FF.StatusCode
+                  }
     deriving (Eq, Show)
 
 instance Storable InputEvent where
@@ -65,59 +205,74 @@ instance Storable InputEvent where
   peek ptr    = do
     _type  <- (#peek struct input_event, type)  ptr :: IO Word16
     _time  <- (#peek struct input_event, time)  ptr :: IO UnixTime
+    _code  <- (#peek struct input_event, code)  ptr :: IO Word16
     _value <- (#peek struct input_event, value) ptr :: IO Int32
-    code   <- (#peek struct input_event, code)  ptr :: IO Word16
+    let packValues cst acsC acsV = return (cst _time (acsC _code) (acsV _value)) 
     case _type of
-      (#const EV_SYN) -> return $ SynEvent _time (SyncCode code)
-      (#const EV_KEY) -> return $ KeyEvent _time (KeyCode code) _value
-      (#const EV_REL) -> return $ RelEvent _time (RelAxesCode code) _value
-      (#const EV_ABS) -> return $ AbsEvent _time (AbsAxesCode code) _value
-      (#const EV_MSC) -> return $ MscEvent _time (MSCCode code)
-      (#const EV_SW)  -> return $ SwEvent  _time (SWCode code)
-      (#const EV_LED) -> return $ LedEvent _time (LEDCode code)
-      (#const EV_SND) -> return $ SndEvent _time (SndCode code)
-      (#const EV_REP) -> return $ RepEvent _time (RepCode code)
-      (#const EV_FF)  -> return $ FFEvent  _time
-      (#const EV_PWR) -> return $ PwrEvent _time
-      (#const EV_FF_STATUS) -> return $ FFStatusEvent _time (FF.StatusCode code)
+      (#const EV_SYN) -> packValues SynEvent SynCode id
+      (#const EV_KEY) -> packValues KeyEvent KeyCode toKeyValue
+      (#const EV_REL) -> packValues RelEvent RelAxesCode id
+      (#const EV_ABS) -> packValues AbsEvent AbsAxesCode id
+      (#const EV_MSC) -> packValues MscEvent MSCCode id
+      (#const EV_SW)  -> packValues SwEvent SWCode id
+      (#const EV_LED) -> packValues LedEvent LEDCode id
+      (#const EV_SND) -> packValues SndEvent SndCode id
+      (#const EV_REP) -> packValues RepEvent RepCode id
+      (#const EV_FF)  -> packValues FFEvent id id
+      (#const EV_PWR) -> packValues PwrEvent id id
+      (#const EV_FF_STATUS) -> packValues FFStatusEvent id FF.StatusCode
       _ -> error $ "Unknown event_type: " ++ show _type
   poke ptr ev = do
       (#poke struct input_event, time) ptr (time ev)
       case ev of
         SynEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_syn)
-                (#poke struct input_event, code) ptr (unSyncCode syncCode)
+                (#poke struct input_event, code) ptr (unSynCode synCode)
+                (#poke struct input_event, value) ptr synValue
         KeyEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_key)
                 (#poke struct input_event, code) ptr (unKeyCode keyCode)
+                (#poke struct input_event, value) ptr (fromKeyValue keyValue)
         AbsEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_abs)
                 (#poke struct input_event, code) ptr (unAbsAxesCode absAxesCode)
-                (#poke struct input_event, value) ptr value
+                (#poke struct input_event, value) ptr absValue
         RelEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_rel)
                 (#poke struct input_event, code) ptr (unRelAxesCode relAxesCode)
-                (#poke struct input_event, value) ptr value
+                (#poke struct input_event, value) ptr relValue
         MscEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_msc)
                 (#poke struct input_event, code) ptr (unMSCCode mscCode)
+                (#poke struct input_event, value) ptr mscValue
         SwEvent  {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_sw)
                 (#poke struct input_event, code) ptr (unSWCode swCode)
+                (#poke struct input_event, value) ptr swValue
         LedEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_led)
                 (#poke struct input_event, code) ptr (unLEDCode ledCode)
+                (#poke struct input_event, value) ptr ledValue
         SndEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_snd)
                 (#poke struct input_event, code) ptr (unSndCode sndCode)
+                (#poke struct input_event, value) ptr sndValue
         RepEvent {..} -> do
                 (#poke struct input_event, type) ptr (unEventType ev_rep)
                 (#poke struct input_event, code) ptr (unRepCode repCode)
-        FFEvent  {} -> (#poke struct input_event, type) ptr (unEventType ev_ff)
-        PwrEvent {} -> (#poke struct input_event, type) ptr (unEventType ev_pwr)
+                (#poke struct input_event, value) ptr repValue
+        FFEvent  {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_ff)
+                (#poke struct input_event, code) ptr ffCode
+                (#poke struct input_event, value) ptr ffValue
+        PwrEvent {..} -> do
+                (#poke struct input_event, type) ptr (unEventType ev_pwr)
+                (#poke struct input_event, code) ptr pwrCode
+                (#poke struct input_event, value) ptr pwrValue
         FFStatusEvent {..} -> do
-                      (#poke struct input_event, type) ptr (unEventType ev_ff_status)
-                      (#poke struct input_event, code) ptr (FF.unStatusCode ffStatus)
+                      (#poke struct input_event, type)  ptr (unEventType ev_ff_status)
+                      (#poke struct input_event, code)  ptr statusCode
+                      (#poke struct input_event, value) ptr (FF.unStatusCode statusValue)
 
 newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
 #{enum EventType, EventType
@@ -137,8 +292,8 @@ newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
  , ev_cnt       = EV_CNT
  }
 
-newtype SyncCode = SyncCode { unSyncCode :: Word16 } deriving (Eq, Show)
-#{enum SyncCode, SyncCode
+newtype SynCode = SynCode { unSynCode :: Word16 } deriving (Eq, Show)
+#{enum SynCode, SynCode
  , syn_report    = SYN_REPORT
  , syn_config    = SYN_CONFIG
  , syn_mt_report = SYN_MT_REPORT
@@ -259,6 +414,23 @@ newtype LEDCode = LEDCode { unLEDCode :: Word16 } deriving (Eq, Show)
  , led_max      = LED_MAX
  , led_cnt      = LED_CNT
  }
+
+data KeyValue = Release | Press | Autorepeat deriving (Eq, Show)
+
+fromKeyValue :: KeyValue -> Int32
+fromKeyValue kv =
+  case kv of
+    Release    -> 0
+    Press      -> 1
+    Autorepeat -> 2
+
+toKeyValue :: Int32 -> KeyValue
+toKeyValue kv =
+  case kv of
+    0 -> Release
+    1 -> Press
+    2 -> Autorepeat
+    _ -> error $ "Unknown EV_KEY value: " ++ show kv
 
 newtype KeyCode = KeyCode { unKeyCode :: Word16 } deriving (Eq, Show)
 #{enum KeyCode, KeyCode

@@ -2,8 +2,8 @@
 module Evdev.Uapi.Internal.Types.ForceFeedback where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.Int            (Int16)
-import Data.Word           (Word8, Word16, Word32)
+import Data.Int            (Int16, Int32)
+import Data.Word           (Word16, Word32)
 import Foreign.Ptr
 import Foreign.Storable
 import Prelude hiding (id, length)
@@ -327,7 +327,7 @@ newtype DeviceProperties = DeviceProperties Word16 deriving Eq
  , ff_cnt          = FF_CNT
  }
 
-newtype StatusCode = StatusCode { unStatusCode :: Word16 } deriving (Eq, Show)
+newtype StatusCode = StatusCode { unStatusCode :: Int32 } deriving (Eq, Show)
 #{enum StatusCode, StatusCode
  , ff_status_stopped = FF_STATUS_STOPPED
  , ff_status_playing = FF_STATUS_PLAYING

@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
 module Evdev.Uapi.Internal.Types.ForceFeedback where
 
 import Control.Applicative ((<$>), (<*>))
@@ -69,13 +69,15 @@ instance Storable Effect where
     dir <- (#peek struct ff_effect, direction) ptr
     trg <- (#peek struct ff_effect, trigger)   ptr
     rpl <- (#peek struct ff_effect, replay)    ptr
+    let peekU :: Storable a => IO a
+        peekU = (#peek struct ff_effect, u) ptr
     case typ of
-      (#const FF_RUMBLE)   -> Rumble   idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
-      (#const FF_PERIODIC) -> Periodic idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
-      (#const FF_CONSTANT) -> Constant idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
-      (#const FF_SPRING)   -> Spring   idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
-      (#const FF_FRICTION) -> Friction idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
-      (#const FF_RAMP    ) -> Ramp     idt dir trg rpl <$> (#peek struct ff_effect, u) ptr
+      (#const FF_RUMBLE)   -> Rumble   idt dir trg rpl <$> peekU
+      (#const FF_PERIODIC) -> Periodic idt dir trg rpl <$> peekU
+      (#const FF_CONSTANT) -> Constant idt dir trg rpl <$> peekU 
+      (#const FF_SPRING)   -> Spring   idt dir trg rpl <$> peekU
+      (#const FF_FRICTION) -> Friction idt dir trg rpl <$> peekU
+      (#const FF_RAMP    ) -> Ramp     idt dir trg rpl <$> peekU
       (#const FF_DAMPER)   -> return (Damper   idt dir trg rpl)
       (#const FF_INERTIA)  -> return (Inertia  idt dir trg rpl)
       _                    -> error $ "Unknown event type: " ++ show typ
@@ -84,27 +86,21 @@ instance Storable Effect where
       (#poke struct ff_effect, direction) ptr (direction ef)
       (#poke struct ff_effect, trigger)   ptr (trigger   ef)
       (#poke struct ff_effect, replay )   ptr (replay    ef)
+      let pokeType :: Word16 -> IO ()
+          pokeType t = (#poke struct ff_effect, type) ptr t
+          pokeU :: Storable a => a -> IO ()
+          pokeU u = (#poke struct ff_effect, u) ptr u
+          pokeEf :: Storable a => Word16 -> a -> IO ()
+          pokeEf t u = pokeType t >> pokeU u
       case ef of
-        Rumble {}   -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffRumble)
-                      (#poke struct ff_effect, u)       ptr (rumble ef)
-        Periodic {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffPeriodic)
-                      (#poke struct ff_effect, u)       ptr (periodic ef)
-        Constant {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffConstant)
-                      (#poke struct ff_effect, u)       ptr (constant ef)
-        Spring {}   -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffSpring)
-                      (#poke struct ff_effect, u)       ptr (spring ef)
-        Friction {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffFriction)
-                      (#poke struct ff_effect, u)       ptr (friction ef)
-        Damper {}   -> (#poke struct ff_effect, type)   ptr (unEffectType ffDamper)
-        Inertia {}  -> (#poke struct ff_effect, type)   ptr (unEffectType ffInertia)
-        Ramp {}     -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ffRamp)
-                      (#poke struct ff_effect, u)       ptr (ramp ef)
+        Rumble {..}   -> pokeEf (#const FF_RUMBLE) rumble
+        Periodic {..} -> pokeEf (#const FF_PERIODIC) periodic
+        Constant {..} -> pokeEf (#const FF_CONSTANT) constant
+        Spring {..}   -> pokeEf (#const FF_SPRING) spring
+        Friction {..} -> pokeEf (#const FF_FRICTION) friction
+        Damper {}     -> pokeType (#const FF_DAMPER)
+        Inertia {}    -> pokeType (#const FF_INERTIA)
+        Ramp {..}     -> pokeEf (#const FF_RAMP) ramp
 
 data Replay =
   Replay {

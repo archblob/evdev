@@ -45,7 +45,7 @@ import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
 
 {-
   www.kernel.org/doc/Documentation/input/ff.txt
-  
+
   3.4 Controlling the playback of effects
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Control of playing is done with write(). Below is an example:
@@ -150,8 +150,8 @@ import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
 
 data InputEvent =
     SynEvent  { time     :: !UnixTime
-              , synCode  :: !SynCode 
-              , synValue :: !Int32 
+              , synCode  :: !SynCode
+              , synValue :: !Int32
               }
   | KeyEvent  { time     :: !UnixTime
               , keyCode  :: !KeyCode
@@ -170,7 +170,7 @@ data InputEvent =
               , mscValue :: !Int32
               }
   | SwEvent   { time    :: !UnixTime
-              , swCode  :: !SWCode 
+              , swCode  :: !SWCode
               , swValue :: !Int32
               }
   | LedEvent  { time     :: !UnixTime
@@ -207,7 +207,7 @@ instance Storable InputEvent where
     _time  <- (#peek struct input_event, time)  ptr :: IO UnixTime
     _code  <- (#peek struct input_event, code)  ptr :: IO Word16
     _value <- (#peek struct input_event, value) ptr :: IO Int32
-    let packValues cst acsC acsV = return (cst _time (acsC _code) (acsV _value)) 
+    let packValues cst acsC acsV = return (cst _time (acsC _code) (acsV _value))
     case _type of
       (#const EV_SYN) -> packValues SynEvent SynCode id
       (#const EV_KEY) -> packValues KeyEvent KeyCode toKeyValue
@@ -247,13 +247,12 @@ instance Storable InputEvent where
         RepEvent {..} -> pokeEvent (#const EV_REP) (unRepCode repCode) repValue
         FFEvent  {..} -> pokeEvent (#const EV_FF) ffCode ffValue
         PwrEvent {..} -> pokeEvent (#const EV_PWR) pwrCode pwrValue
-        FFStatusEvent {..} -> pokeEvent 
+        FFStatusEvent {..} -> pokeEvent
                   (#const EV_FF_STATUS) statusCode (FF.unStatusCode statusValue)
 
-
 newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
-#{enum EventType, EventType, 
-  EV_SYN, 
+#{enum EventType, EventType,
+  EV_SYN,
   EV_KEY,
   EV_REL,
   EV_ABS,

@@ -224,55 +224,32 @@ instance Storable InputEvent where
       _ -> error $ "Unknown event_type: " ++ show _type
   poke ptr ev = do
       (#poke struct input_event, time) ptr (time ev)
+      let pokeType :: Word16 -> IO ()
+          pokeType t = (#poke struct input_event, type) ptr t
+          pokeCode :: Word16 -> IO ()
+          pokeCode c = (#poke struct input_event, code) ptr c
+          pokeValue :: Int32 -> IO ()
+          pokeValue v = (#poke struct input_event, value) ptr v
+          pokeEvent :: Word16 -> Word16 -> Int32 -> IO ()
+          pokeEvent t c v = pokeType t >> pokeCode c >> pokeValue v
       case ev of
-        SynEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evSyn)
-                (#poke struct input_event, code) ptr (unSynCode synCode)
-                (#poke struct input_event, value) ptr synValue
-        KeyEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evKey)
-                (#poke struct input_event, code) ptr (unKeyCode keyCode)
-                (#poke struct input_event, value) ptr (fromKeyValue keyValue)
-        AbsEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evAbs)
-                (#poke struct input_event, code) ptr (unAbsAxesCode absAxesCode)
-                (#poke struct input_event, value) ptr absValue
-        RelEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evRel)
-                (#poke struct input_event, code) ptr (unRelAxesCode relAxesCode)
-                (#poke struct input_event, value) ptr relValue
-        MscEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evMsc)
-                (#poke struct input_event, code) ptr (unMSCCode mscCode)
-                (#poke struct input_event, value) ptr mscValue
-        SwEvent  {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evSw)
-                (#poke struct input_event, code) ptr (unSWCode swCode)
-                (#poke struct input_event, value) ptr swValue
-        LedEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evLed)
-                (#poke struct input_event, code) ptr (unLEDCode ledCode)
-                (#poke struct input_event, value) ptr ledValue
-        SndEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evSnd)
-                (#poke struct input_event, code) ptr (unSndCode sndCode)
-                (#poke struct input_event, value) ptr sndValue
-        RepEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evRep)
-                (#poke struct input_event, code) ptr (unRepCode repCode)
-                (#poke struct input_event, value) ptr repValue
-        FFEvent  {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evFf)
-                (#poke struct input_event, code) ptr ffCode
-                (#poke struct input_event, value) ptr ffValue
-        PwrEvent {..} -> do
-                (#poke struct input_event, type) ptr (unEventType evPwr)
-                (#poke struct input_event, code) ptr pwrCode
-                (#poke struct input_event, value) ptr pwrValue
-        FFStatusEvent {..} -> do
-                      (#poke struct input_event, type)  ptr (unEventType evFfStatus)
-                      (#poke struct input_event, code)  ptr statusCode
-                      (#poke struct input_event, value) ptr (FF.unStatusCode statusValue)
+        SynEvent {..} -> pokeEvent (#const EV_SYN) (unSynCode synCode) synValue
+        KeyEvent {..} -> pokeEvent
+                  (#const EV_KEY) (unKeyCode keyCode) (fromKeyValue keyValue)
+        AbsEvent {..} -> pokeEvent
+                  (#const EV_ABS) (unAbsAxesCode absAxesCode) absValue
+        RelEvent {..} -> pokeEvent
+                  (#const EV_REL) (unRelAxesCode relAxesCode) relValue
+        MscEvent {..} -> pokeEvent (#const EV_MSC) (unMSCCode mscCode) mscValue
+        SwEvent  {..} -> pokeEvent (#const EV_SW) (unSWCode swCode) swValue
+        LedEvent {..} -> pokeEvent (#const EV_LED) (unLEDCode ledCode) ledValue
+        SndEvent {..} -> pokeEvent (#const EV_SND) (unSndCode sndCode) sndValue
+        RepEvent {..} -> pokeEvent (#const EV_REP) (unRepCode repCode) repValue
+        FFEvent  {..} -> pokeEvent (#const EV_FF) ffCode ffValue
+        PwrEvent {..} -> pokeEvent (#const EV_PWR) pwrCode pwrValue
+        FFStatusEvent {..} -> pokeEvent 
+                  (#const EV_FF_STATUS) statusCode (FF.unStatusCode statusValue)
+
 
 newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
 #{enum EventType, EventType, 

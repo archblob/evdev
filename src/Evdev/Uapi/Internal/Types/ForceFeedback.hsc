@@ -86,24 +86,24 @@ instance Storable Effect where
       (#poke struct ff_effect, replay )   ptr (replay    ef)
       case ef of
         Rumble {}   -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_rumble)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffRumble)
                       (#poke struct ff_effect, u)       ptr (rumble ef)
         Periodic {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_periodic)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffPeriodic)
                       (#poke struct ff_effect, u)       ptr (periodic ef)
         Constant {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_constant)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffConstant)
                       (#poke struct ff_effect, u)       ptr (constant ef)
         Spring {}   -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_spring)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffSpring)
                       (#poke struct ff_effect, u)       ptr (spring ef)
         Friction {} -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_friction)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffFriction)
                       (#poke struct ff_effect, u)       ptr (friction ef)
-        Damper {}   -> (#poke struct ff_effect, type)   ptr (unEffectType ff_damper)
-        Inertia {}  -> (#poke struct ff_effect, type)   ptr (unEffectType ff_inertia)
+        Damper {}   -> (#poke struct ff_effect, type)   ptr (unEffectType ffDamper)
+        Inertia {}  -> (#poke struct ff_effect, type)   ptr (unEffectType ffInertia)
         Ramp {}     -> do
-                      (#poke struct ff_effect, type)    ptr (unEffectType ff_ramp)
+                      (#poke struct ff_effect, type)    ptr (unEffectType ffRamp)
                       (#poke struct ff_effect, u)       ptr (ramp ef)
 
 data Replay =
@@ -282,18 +282,17 @@ instance Storable RumbleEffect where
       (#poke struct ff_rumble_effect, weak_magnitude)   ptr (weakMagnitude re)
 
 newtype EffectType = EffectType { unEffectType :: Word16 } deriving Eq
-#{enum EffectType, EffectType
- , ff_rumble       = FF_RUMBLE
- , ff_periodic     = FF_PERIODIC
- , ff_constant     = FF_CONSTANT
- , ff_spring       = FF_SPRING
- , ff_friction     = FF_FRICTION
- , ff_damper       = FF_DAMPER
- , ff_inertia      = FF_INERTIA
- , ff_ramp         = FF_RAMP
- , ff_effect_min   = FF_EFFECT_MIN
- , ff_effect_max   = FF_EFFECT_MAX
- }
+#{enum EffectType, EffectType,
+  FF_RUMBLE,
+  FF_PERIODIC,
+  FF_CONSTANT,
+  FF_SPRING,
+  FF_FRICTION,
+  FF_DAMPER,
+  FF_INERTIA,
+  FF_RAMP,
+  FF_EFFECT_MIN,
+  FF_EFFECT_MAX }
 
 data Waveform =
   Square | Triangle | Sine | SawUp | SawDown | Custom deriving (Eq, Show)
@@ -320,17 +319,15 @@ fromWaveform wf =
     Custom   -> (#const FF_CUSTOM)
 
 newtype DeviceProperties = DeviceProperties Word16 deriving Eq
-#{enum DeviceProperties, DeviceProperties
- , ff_gain         = FF_GAIN
- , ff_autocenter   = FF_AUTOCENTER
- , ff_max          = FF_MAX
- , ff_cnt          = FF_CNT
- }
+#{enum DeviceProperties, DeviceProperties,
+  FF_GAIN,
+  FF_AUTOCENTER,
+  FF_MAX,
+  FF_CNT }
 
 newtype StatusCode = StatusCode { unStatusCode :: Int32 } deriving (Eq, Show)
-#{enum StatusCode, StatusCode
- , ff_status_stopped = FF_STATUS_STOPPED
- , ff_status_playing = FF_STATUS_PLAYING
- , ff_status_max     = FF_STATUS_MAX
- }
+#{enum StatusCode, StatusCode,
+  FF_STATUS_STOPPED,
+  FF_STATUS_PLAYING,
+  FF_STATUS_MAX }
 

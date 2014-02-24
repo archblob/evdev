@@ -1,7 +1,7 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, RecordWildCards #-}
 module Evdev.Uapi.Internal.Types.Ioctl where
 
--- Types use in ioctl calls
+-- Types used in ioctl calls
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32)
@@ -31,11 +31,11 @@ instance Storable InputID where
       <*> (#peek struct input_id, vendor)  ptr
       <*> (#peek struct input_id, product) ptr
       <*> (#peek struct input_id, version) ptr
-  poke ptr inpID = do
-      (#poke struct input_id, bustype) ptr (bustype inpID)
-      (#poke struct input_id, vendor)  ptr (vendor  inpID)
-      (#poke struct input_id, product) ptr (product inpID)
-      (#poke struct input_id, version) ptr (version inpID)
+  poke ptr (InputID {..}) = do
+      (#poke struct input_id, bustype) ptr bustype
+      (#poke struct input_id, vendor)  ptr vendor
+      (#poke struct input_id, product) ptr product
+      (#poke struct input_id, version) ptr version
 
 data InputKeymapEntry =
   InputKeymapEntry {
@@ -56,12 +56,12 @@ instance Storable InputKeymapEntry where
       <*> (#peek struct input_keymap_entry, index)    ptr
       <*> (#peek struct input_keymap_entry, keycode)  ptr
       <*> (#peek struct input_keymap_entry, scancode) ptr
-  poke ptr ike = do
-      (#poke struct input_keymap_entry, flags)    ptr (flags    ike)
-      (#poke struct input_keymap_entry, len)      ptr (len      ike)
-      (#poke struct input_keymap_entry, index)    ptr (index    ike)
-      (#poke struct input_keymap_entry, keycode)  ptr (keycode  ike)
-      (#poke struct input_keymap_entry, scancode) ptr (scancode ike)
+  poke ptr (InputKeymapEntry {..}) = do
+      (#poke struct input_keymap_entry, flags)    ptr flags
+      (#poke struct input_keymap_entry, len)      ptr len
+      (#poke struct input_keymap_entry, index)    ptr index
+      (#poke struct input_keymap_entry, keycode)  ptr keycode
+      (#poke struct input_keymap_entry, scancode) ptr scancode
 
 data InputAbsInfo =
   InputAbsInfo {
@@ -84,13 +84,13 @@ instance Storable InputAbsInfo where
       <*> (#peek struct input_absinfo, fuzz)       ptr
       <*> (#peek struct input_absinfo, flat)       ptr
       <*> (#peek struct input_absinfo, resolution) ptr
-  poke ptr absInf = do
-      (#poke struct input_absinfo, value)      ptr (value      absInf)
-      (#poke struct input_absinfo, minimum)    ptr (minimum    absInf)
-      (#poke struct input_absinfo, maximum)    ptr (maximum    absInf)
-      (#poke struct input_absinfo, fuzz)       ptr (fuzz       absInf)
-      (#poke struct input_absinfo, flat)       ptr (flat       absInf)
-      (#poke struct input_absinfo, resolution) ptr (resolution absInf)
+  poke ptr (InputAbsInfo {..}) = do
+      (#poke struct input_absinfo, value)      ptr value
+      (#poke struct input_absinfo, minimum)    ptr minimum
+      (#poke struct input_absinfo, maximum)    ptr maximum
+      (#poke struct input_absinfo, fuzz)       ptr fuzz
+      (#poke struct input_absinfo, flat)       ptr flat
+      (#poke struct input_absinfo, resolution) ptr resolution
 
 newtype DeviceID = DeviceID { unDeviceId :: Word8 } deriving Eq
 #{enum DeviceID, DeviceID,

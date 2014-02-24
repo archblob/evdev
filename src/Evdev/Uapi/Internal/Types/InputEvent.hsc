@@ -210,7 +210,7 @@ instance Storable InputEvent where
     let packValues cst acsC acsV = return (cst _time (acsC _code) (acsV _value))
     case _type of
       (#const EV_SYN) -> packValues SynEvent SynCode id
-      (#const EV_KEY) -> packValues KeyEvent KeyCode toKeyValue
+      (#const EV_KEY) -> packValues KeyEvent KeyCode KeyValue
       (#const EV_REL) -> packValues RelEvent RelAxesCode id
       (#const EV_ABS) -> packValues AbsEvent AbsAxesCode id
       (#const EV_MSC) -> packValues MscEvent MSCCode id
@@ -235,7 +235,7 @@ instance Storable InputEvent where
       case ev of
         SynEvent {..} -> pokeEvent (#const EV_SYN) (unSynCode synCode) synValue
         KeyEvent {..} -> pokeEvent
-                  (#const EV_KEY) (unKeyCode keyCode) (fromKeyValue keyValue)
+                  (#const EV_KEY) (unKeyCode keyCode) (unKeyValue keyValue)
         AbsEvent {..} -> pokeEvent
                   (#const EV_ABS) (unAbsAxesCode absAxesCode) absValue
         RelEvent {..} -> pokeEvent
@@ -383,22 +383,16 @@ newtype LEDCode = LEDCode { unLEDCode :: Word16 } deriving (Eq, Show)
   LED_MAX,
   LED_CNT }
 
-data KeyValue = Release | Press | Autorepeat deriving (Eq, Show)
+data KeyValue = KeyValue { unKeyValue :: Int32 } deriving (Eq, Show)
 
-fromKeyValue :: KeyValue -> Int32
-fromKeyValue kv =
-  case kv of
-    Release    -> 0
-    Press      -> 1
-    Autorepeat -> 2
+keyRelease :: KeyValue
+keyRelease = KeyValue 0
 
-toKeyValue :: Int32 -> KeyValue
-toKeyValue kv =
-  case kv of
-    0 -> Release
-    1 -> Press
-    2 -> Autorepeat
-    _ -> error $ "Unknown EV_KEY value: " ++ show kv
+keyPress :: KeyValue
+keyPress = KeyValue 1
+
+keyAutorepeat :: KeyValue
+keyAutorepeat = KeyValue 2
 
 newtype KeyCode = KeyCode { unKeyCode :: Word16 } deriving (Eq, Show)
 #{enum KeyCode, KeyCode,

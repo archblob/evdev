@@ -74,7 +74,7 @@ instance Storable Effect where
     case typ of
       (#const FF_RUMBLE)   -> Rumble   idt dir trg rpl <$> peekU
       (#const FF_PERIODIC) -> Periodic idt dir trg rpl <$> peekU
-      (#const FF_CONSTANT) -> Constant idt dir trg rpl <$> peekU 
+      (#const FF_CONSTANT) -> Constant idt dir trg rpl <$> peekU
       (#const FF_SPRING)   -> Spring   idt dir trg rpl <$> peekU
       (#const FF_FRICTION) -> Friction idt dir trg rpl <$> peekU
       (#const FF_RAMP    ) -> Ramp     idt dir trg rpl <$> peekU
@@ -115,9 +115,9 @@ instance Storable Replay where
     Replay
       <$> (#peek struct ff_replay, length) ptr
       <*> (#peek struct ff_replay, delay)  ptr
-  poke ptr rp = do
-      (#poke struct ff_replay, length) ptr (length rp)
-      (#poke struct ff_replay, delay)  ptr (delay rp)
+  poke ptr (Replay {..}) = do
+      (#poke struct ff_replay, length) ptr length
+      (#poke struct ff_replay, delay)  ptr delay
 
 data Trigger =
   Trigger {
@@ -132,9 +132,9 @@ instance Storable Trigger where
     Trigger
       <$> (#peek struct ff_trigger, button)   ptr
       <*> (#peek struct ff_trigger, interval) ptr
-  poke ptr tr = do
-      (#poke struct ff_trigger, button)   ptr (button tr)
-      (#poke struct ff_trigger, interval) ptr (interval tr)
+  poke ptr (Trigger {..}) = do
+      (#poke struct ff_trigger, button)   ptr button
+      (#poke struct ff_trigger, interval) ptr interval
 
 data Envelope =
   Envelope {
@@ -153,11 +153,11 @@ instance Storable Envelope where
       <*> (#peek struct ff_envelope, attack_level)  ptr
       <*> (#peek struct ff_envelope, fade_length)   ptr
       <*> (#peek struct ff_envelope, fade_level)    ptr
-  poke ptr en = do
-      (#poke struct ff_envelope, attack_length) ptr (attackLength en)
-      (#poke struct ff_envelope, attack_level)  ptr (attackLevel en)
-      (#poke struct ff_envelope, fade_length)   ptr (fadeLength en)
-      (#poke struct ff_envelope, fade_level)    ptr (fadeLevel en)
+  poke ptr (Envelope {..}) = do
+      (#poke struct ff_envelope, attack_length) ptr attackLength
+      (#poke struct ff_envelope, attack_level)  ptr attackLevel
+      (#poke struct ff_envelope, fade_length)   ptr fadeLength
+      (#poke struct ff_envelope, fade_level)    ptr fadeLevel
 
 data ConstantEffect =
   ConstantEffect {
@@ -172,9 +172,9 @@ instance Storable ConstantEffect where
     ConstantEffect
       <$> (#peek struct ff_constant_effect, level)    ptr
       <*> (#peek struct ff_constant_effect, envelope) ptr
-  poke ptr ce = do
-    (#poke struct ff_constant_effect, level)    ptr (level ce)
-    (#poke struct ff_constant_effect, envelope) ptr (constantEffectEnvelope ce)
+  poke ptr (ConstantEffect {..}) = do
+    (#poke struct ff_constant_effect, level)    ptr level
+    (#poke struct ff_constant_effect, envelope) ptr constantEffectEnvelope
 
 data RampEffect =
   RampEffect {
@@ -191,10 +191,10 @@ instance Storable RampEffect where
       <$> (#peek struct ff_ramp_effect, start_level) ptr
       <*> (#peek struct ff_ramp_effect, end_level)   ptr
       <*> (#peek struct ff_ramp_effect, envelope)    ptr
-  poke ptr re = do
-      (#poke struct ff_ramp_effect, start_level) ptr (startLevel re)
-      (#poke struct ff_ramp_effect, end_level)   ptr (endLevel re)
-      (#poke struct ff_ramp_effect, envelope)    ptr (rampEffectEnvelope re)
+  poke ptr (RampEffect {..}) = do
+      (#poke struct ff_ramp_effect, start_level) ptr startLevel
+      (#poke struct ff_ramp_effect, end_level)   ptr endLevel
+      (#poke struct ff_ramp_effect, envelope)    ptr rampEffectEnvelope
 
 data ConditionEffect =
   ConditionEffect {
@@ -217,17 +217,17 @@ instance Storable ConditionEffect where
       <*> (#peek struct ff_condition_effect, left_coeff)       ptr
       <*> (#peek struct ff_condition_effect, deadband)         ptr
       <*> (#peek struct ff_condition_effect, center)           ptr
-  poke ptr ce = do
-      (#poke struct ff_condition_effect, right_saturation) ptr (rightSaturation ce)
-      (#poke struct ff_condition_effect, left_saturation)  ptr (leftSaturation ce)
-      (#poke struct ff_condition_effect, right_coeff)      ptr (rightCoeff ce)
-      (#poke struct ff_condition_effect, left_coeff)       ptr (leftCoeff ce)
-      (#poke struct ff_condition_effect, deadband)         ptr (deadband ce)
-      (#poke struct ff_condition_effect, center)           ptr (center ce)
+  poke ptr (ConditionEffect {..}) = do
+      (#poke struct ff_condition_effect, right_saturation) ptr rightSaturation
+      (#poke struct ff_condition_effect, left_saturation)  ptr leftSaturation
+      (#poke struct ff_condition_effect, right_coeff)      ptr rightCoeff
+      (#poke struct ff_condition_effect, left_coeff)       ptr leftCoeff
+      (#poke struct ff_condition_effect, deadband)         ptr deadband
+      (#poke struct ff_condition_effect, center)           ptr center
 
 data PeriodicEffect =
   PeriodicEffect {
-    waveform               :: Waveform
+    waveform               :: !Waveform
   , period                 :: !Word16
   , magnitude              :: !Int16
   , offset                 :: !Int16
@@ -242,7 +242,7 @@ instance Storable PeriodicEffect where
   alignment _ = (#alignment struct ff_periodic_effect)
   peek ptr    = do
     _waveform <- (#peek struct ff_periodic_effect, waveform) ptr :: IO Word16
-    PeriodicEffect (toWaveform _waveform)
+    PeriodicEffect (Waveform _waveform)
       <$> (#peek struct ff_periodic_effect, period)      ptr
       <*> (#peek struct ff_periodic_effect, magnitude)   ptr
       <*> (#peek struct ff_periodic_effect, offset)      ptr
@@ -250,15 +250,15 @@ instance Storable PeriodicEffect where
       <*> (#peek struct ff_periodic_effect, envelope)    ptr
       <*> (#peek struct ff_periodic_effect, custom_len)  ptr
       <*> (#peek struct ff_periodic_effect, custom_data) ptr
-  poke ptr pe = do
-      (#poke struct ff_periodic_effect, waveform)    ptr (fromWaveform (waveform pe))
-      (#poke struct ff_periodic_effect, period)      ptr (period pe)
-      (#poke struct ff_periodic_effect, magnitude)   ptr (magnitude pe)
-      (#poke struct ff_periodic_effect, offset)      ptr (offset pe)
-      (#poke struct ff_periodic_effect, phase)       ptr (phase pe)
-      (#poke struct ff_periodic_effect, envelope)    ptr (periodicEffectEnvelope pe)
-      (#poke struct ff_periodic_effect, custom_len)  ptr (customLen pe)
-      (#poke struct ff_periodic_effect, custom_data) ptr (customData pe)
+  poke ptr (PeriodicEffect {..}) = do
+      (#poke struct ff_periodic_effect, waveform)    ptr (unWaveform waveform)
+      (#poke struct ff_periodic_effect, period)      ptr period
+      (#poke struct ff_periodic_effect, magnitude)   ptr magnitude
+      (#poke struct ff_periodic_effect, offset)      ptr offset
+      (#poke struct ff_periodic_effect, phase)       ptr phase
+      (#poke struct ff_periodic_effect, envelope)    ptr periodicEffectEnvelope
+      (#poke struct ff_periodic_effect, custom_len)  ptr customLen
+      (#poke struct ff_periodic_effect, custom_data) ptr customData
 
 data RumbleEffect =
   RumbleEffect {
@@ -273,9 +273,9 @@ instance Storable RumbleEffect where
     RumbleEffect
       <$> (#peek struct ff_rumble_effect, strong_magnitude) ptr
       <*> (#peek struct ff_rumble_effect, weak_magnitude)   ptr
-  poke ptr re = do
-      (#poke struct ff_rumble_effect, strong_magnitude) ptr (strongMagnitude re)
-      (#poke struct ff_rumble_effect, weak_magnitude)   ptr (weakMagnitude re)
+  poke ptr (RumbleEffect {..}) = do
+      (#poke struct ff_rumble_effect, strong_magnitude) ptr strongMagnitude
+      (#poke struct ff_rumble_effect, weak_magnitude)   ptr weakMagnitude
 
 newtype EffectType = EffectType { unEffectType :: Word16 } deriving Eq
 #{enum EffectType, EffectType,
@@ -290,29 +290,16 @@ newtype EffectType = EffectType { unEffectType :: Word16 } deriving Eq
   FF_EFFECT_MIN,
   FF_EFFECT_MAX }
 
-data Waveform =
-  Square | Triangle | Sine | SawUp | SawDown | Custom deriving (Eq, Show)
-
-toWaveform :: Word16 -> Waveform
-toWaveform wf =
-  case wf of
-    (#const FF_SQUARE)   -> Square
-    (#const FF_TRIANGLE) -> Triangle
-    (#const FF_SINE)     -> Sine
-    (#const FF_SAW_UP)   -> SawUp
-    (#const FF_SAW_DOWN) -> SawDown
-    (#const FF_CUSTOM)   -> Custom
-    _                    -> error $ "Unknown waveform type: " ++ show wf
-
-fromWaveform :: Waveform -> Word16
-fromWaveform wf =
-  case wf of
-    Square   -> (#const FF_SQUARE)
-    Triangle -> (#const FF_TRIANGLE)
-    Sine     -> (#const FF_SINE)
-    SawUp    -> (#const FF_SAW_UP)
-    SawDown  -> (#const FF_SAW_DOWN)
-    Custom   -> (#const FF_CUSTOM)
+newtype Waveform = Waveform { unWaveform :: Word16 } deriving (Eq, Show)
+#{enum Waveform, Waveform,
+  FF_SQUARE,
+  FF_TRIANGLE,
+  FF_SINE,
+  FF_SAW_UP,
+  FF_SAW_DOWN,
+  FF_CUSTOM,
+  FF_WAVEFORM_MIN,
+  FF_WAVEFORM_MAX }
 
 newtype DeviceProperties = DeviceProperties Word16 deriving Eq
 #{enum DeviceProperties, DeviceProperties,

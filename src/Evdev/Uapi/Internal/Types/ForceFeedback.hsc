@@ -1,16 +1,19 @@
 {-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
 module Evdev.Uapi.Internal.Types.ForceFeedback where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), liftA2)
 import Data.Int            (Int16, Int32)
 import Data.Word           (Word16, Word32)
 import Foreign.Ptr
 import Foreign.Storable
+import Foreign.Marshal.Alloc (alloca)
 import Prelude hiding (id, length)
 
 #include <linux/input.h>
 
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
+
+type XY = (ConditionEffect, ConditionEffect)
 
 data Effect =
     Rumble { id        :: !Int16
@@ -35,13 +38,13 @@ data Effect =
            , direction :: !Word16
            , trigger   :: !Trigger
            , replay    :: !Replay
-           , spring    :: !(Ptr ConditionEffect)
+           , spring    :: !XY
            }
   | Friction { id        :: !Int16
              , direction :: !Word16
              , trigger   :: !Trigger
              , replay    :: !Replay
-             , friction  :: !(Ptr ConditionEffect)
+             , friction  :: !XY
              }
   | Damper { id        :: !Int16
            , direction :: !Word16
@@ -71,12 +74,16 @@ instance Storable Effect where
     rpl <- (#peek struct ff_effect, replay)    ptr
     let peekU :: Storable a => IO a
         peekU = (#peek struct ff_effect, u) ptr
+        peekXY :: IO XY
+        peekXY = do
+            ceArray <- peekU :: IO (Ptr ConditionEffect)
+            liftA2 (,) (peekElemOff ceArray 0) (peekElemOff ceArray 1)
     case typ of
       (#const FF_RUMBLE)   -> Rumble   idt dir trg rpl <$> peekU
       (#const FF_PERIODIC) -> Periodic idt dir trg rpl <$> peekU
       (#const FF_CONSTANT) -> Constant idt dir trg rpl <$> peekU
-      (#const FF_SPRING)   -> Spring   idt dir trg rpl <$> peekU
-      (#const FF_FRICTION) -> Friction idt dir trg rpl <$> peekU
+      (#const FF_SPRING)   -> Spring   idt dir trg rpl <$> peekXY
+      (#const FF_FRICTION) -> Friction idt dir trg rpl <$> peekXY
       (#const FF_RAMP    ) -> Ramp     idt dir trg rpl <$> peekU
       (#const FF_DAMPER)   -> return (Damper   idt dir trg rpl)
       (#const FF_INERTIA)  -> return (Inertia  idt dir trg rpl)
@@ -90,14 +97,22 @@ instance Storable Effect where
           pokeType t = (#poke struct ff_effect, type) ptr t
           pokeU :: Storable a => a -> IO ()
           pokeU u = (#poke struct ff_effect, u) ptr u
+          pokeXY :: XY -> IO ()
+          pokeXY (x,y) = alloca pk
+            where
+              pk :: Ptr ConditionEffect -> IO ()
+              pk p = do
+                  pokeElemOff p 0 x
+                  pokeElemOff p 1 y
+                  (#poke struct ff_effect, u) ptr p
           pokeEf :: Storable a => Word16 -> a -> IO ()
           pokeEf t u = pokeType t >> pokeU u
       case ef of
         Rumble {..}   -> pokeEf (#const FF_RUMBLE) rumble
         Periodic {..} -> pokeEf (#const FF_PERIODIC) periodic
         Constant {..} -> pokeEf (#const FF_CONSTANT) constant
-        Spring {..}   -> pokeEf (#const FF_SPRING) spring
-        Friction {..} -> pokeEf (#const FF_FRICTION) friction
+        Spring {..}   -> pokeType (#const FF_SPRING) >> pokeXY spring
+        Friction {..} -> pokeType (#const FF_FRICTION) >> pokeXY friction
         Damper {}     -> pokeType (#const FF_DAMPER)
         Inertia {}    -> pokeType (#const FF_INERTIA)
         Ramp {..}     -> pokeEf (#const FF_RAMP) ramp
@@ -224,6 +239,11 @@ instance Storable ConditionEffect where
       (#poke struct ff_condition_effect, left_coeff)       ptr leftCoeff
       (#poke struct ff_condition_effect, deadband)         ptr deadband
       (#poke struct ff_condition_effect, center)           ptr center
+  peekByteOff ptr off = peek (ptr `plusPtr` off)
+  peekElemOff ptr i   =
+          peek $ ptr `plusPtr` (i * (#size struct ff_condition_effect))
+  pokeByteOff ptr off = poke (ptr `plusPtr` off)
+  pokeElemOff ptr i   = poke (ptr `plusPtr` (i * sizeOf i))
 
 data PeriodicEffect =
   PeriodicEffect {

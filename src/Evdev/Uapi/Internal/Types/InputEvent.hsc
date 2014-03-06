@@ -909,13 +909,6 @@ newtype MTToolCode = MTToolCode { unMTToolCode :: Word16 } deriving (Eq, Show)
   MT_TOOL_PEN,
   MT_TOOL_MAX}
 
-newtype RepCode = RepCode { unRepCode :: Word16 } deriving (Eq, Show)
-#{enum RepCode, RepCode,
-  REP_DELAY,
-  REP_PERIOD,
-  REP_MAX,
-  REP_CNT }
-
 newtype SndCode = SndCode { unSndCode :: Word16 } deriving (Eq, Show)
 #{enum SndCode, SndCode,
   SND_CLICK,

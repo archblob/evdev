@@ -129,3 +129,11 @@ newtype InputProperty = InputProperty { unInputProperty :: Word8 } deriving Eq
   INPUT_PROP_SEMI_MT,
   INPUT_PROP_MAX,
   INPUT_PROP_CNT }
+
+newtype RepCode = RepCode { unRepCode :: Word16 } deriving (Eq, Show)
+#{enum RepCode, RepCode,
+  REP_DELAY,
+  REP_PERIOD,
+  REP_MAX,
+  REP_CNT }
+

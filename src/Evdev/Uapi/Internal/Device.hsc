@@ -8,6 +8,7 @@ module Evdev.Uapi.Internal.Device (
   , eviocGetProp
   , eviocGetKeyCode
   , eviocGetRep
+  , eviocGetEffects
   ) where
 
 import Evdev.Uapi.Internal.Types.Ioctl
@@ -37,6 +38,12 @@ eviocGetRep fd =
                 (,) <$> peekElemOff ptr 0
                     <*> peekElemOff ptr 1
   in alloca getRepSettings
+
+eviocGetEffects :: Fd -> IO CInt
+eviocGetEffects fd =
+  let getEffects :: Ptr CInt -> IO CInt
+      getEffects ptr = ioctl fd (#const EVIOCGEFFECTS) ptr >> peek ptr
+  in alloca getEffects
 
 -- | Get driver version.
 eviocGetVersion :: Fd -> IO CInt

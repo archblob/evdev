@@ -9,6 +9,8 @@ module Evdev.Uapi.Internal.Device (
   , eviocGetKeyCode
   , eviocGetRep
   , eviocGetEffects
+  , eviocGrab
+  , eviocRevoke
   ) where
 
 import Evdev.Uapi.Internal.Types.Ioctl
@@ -44,6 +46,18 @@ eviocGetEffects fd =
   let getEffects :: Ptr CInt -> IO CInt
       getEffects ptr = ioctl fd (#const EVIOCGEFFECTS) ptr >> peek ptr
   in alloca getEffects
+
+eviocGrab :: Fd -> IO CInt
+eviocGrab fd =
+  let grab :: Ptr CInt -> IO CInt
+      grab ptr = ioctl fd (#const EVIOCGRAB) ptr >> peek ptr
+  in alloca grab
+
+eviocRevoke :: Fd -> IO CInt
+eviocRevoke fd =
+  let revoke :: Ptr CInt -> IO CInt
+      revoke ptr = ioctl fd (#const EVIOCREVOKE) ptr >> peek ptr
+  in alloca revoke
 
 -- | Get driver version.
 eviocGetVersion :: Fd -> IO CInt

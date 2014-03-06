@@ -5,7 +5,7 @@ module Evdev.Uapi.Internal.Types.Ioctl where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32)
-import Data.Word           (Word8, Word16, Word32)
+import Data.Word           (Word, Word8, Word16, Word32)
 import Foreign.Ptr
 import Foreign.Storable
 import Prelude hiding (minimum, maximum, product)

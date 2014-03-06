@@ -7,10 +7,12 @@ module Evdev.Uapi.Internal.Device (
   , eviocGetUniq
   , eviocGetProp
   , eviocGetKeyCode
+  , eviocGetRep
   ) where
 
 import Evdev.Uapi.Internal.Types.Ioctl
 
+import Control.Applicative ((<$>), (<*>))
 import Foreign
 import Foreign.C.Error       (throwErrnoIfMinus1_)
 import Foreign.C.String      (CString, peekCString, peekCAString)
@@ -26,6 +28,15 @@ foreign import ccall "sys/ioctl.h ioctl"
 ioctl :: Storable a => Fd -> CInt -> Ptr a -> IO ()
 ioctl fd c ptr =
   throwErrnoIfMinus1_ "ioctl" $ c_ioctl (fromIntegral fd) c (castPtr ptr)
+
+eviocGetRep :: Fd -> IO (Word, Word)
+eviocGetRep fd =
+  let getRepSettings :: Ptr Word -> IO (Word, Word)
+      getRepSettings ptr =
+              ioctl fd (#const EVIOCGREP) ptr >>
+                (,) <$> peekElemOff ptr 0
+                    <*> peekElemOff ptr 1
+  in alloca getRepSettings
 
 -- | Get driver version.
 eviocGetVersion :: Fd -> IO CInt

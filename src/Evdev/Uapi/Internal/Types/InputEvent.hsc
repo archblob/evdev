@@ -7,6 +7,7 @@ import Data.Word           (Word16)
 import Foreign.Storable
 
 import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
+import qualified Evdev.Uapi.Internal.Types.Ioctl as IC
 
 #include <linux/input.h>
 
@@ -182,7 +183,7 @@ data InputEvent =
               , sndValue :: !Int32
               }
   | RepEvent  { time     :: !UnixTime
-              , repCode  :: !RepCode
+              , repCode  :: !IC.RepCode
               , repValue :: !Int32
               }
   | FFEvent   { time    :: !UnixTime
@@ -217,7 +218,7 @@ instance Storable InputEvent where
       (#const EV_SW)  -> packValues SwEvent SWCode id
       (#const EV_LED) -> packValues LedEvent LEDCode id
       (#const EV_SND) -> packValues SndEvent SndCode id
-      (#const EV_REP) -> packValues RepEvent RepCode id
+      (#const EV_REP) -> packValues RepEvent IC.RepCode id
       (#const EV_FF)  -> packValues FFEvent id id
       (#const EV_PWR) -> packValues PwrEvent id id
       (#const EV_FF_STATUS) -> packValues FFStatusEvent id FF.StatusCode
@@ -244,7 +245,7 @@ instance Storable InputEvent where
         SwEvent  {..} -> pokeEvent (#const EV_SW) (unSWCode swCode) swValue
         LedEvent {..} -> pokeEvent (#const EV_LED) (unLEDCode ledCode) ledValue
         SndEvent {..} -> pokeEvent (#const EV_SND) (unSndCode sndCode) sndValue
-        RepEvent {..} -> pokeEvent (#const EV_REP) (unRepCode repCode) repValue
+        RepEvent {..} -> pokeEvent (#const EV_REP) (IC.unRepCode repCode) repValue
         FFEvent  {..} -> pokeEvent (#const EV_FF) ffCode ffValue
         PwrEvent {..} -> pokeEvent (#const EV_PWR) pwrCode pwrValue
         FFStatusEvent {..} -> pokeEvent

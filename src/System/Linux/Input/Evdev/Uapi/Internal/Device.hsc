@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module Evdev.Uapi.Internal.Device (
+module System.Linux.Input.Evdev.Uapi.Internal.Device (
     eviocGetVersion
   , eviocGetID
   , eviocGetName
@@ -13,7 +13,7 @@ module Evdev.Uapi.Internal.Device (
   , eviocRevoke
   ) where
 
-import Evdev.Uapi.Internal.Types.Ioctl
+import System.Linux.Input.Evdev.Uapi.Internal.Types.Ioctl
 
 import Control.Applicative ((<$>), (<*>))
 import Foreign

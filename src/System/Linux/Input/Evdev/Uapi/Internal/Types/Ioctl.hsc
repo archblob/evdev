@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface, RecordWildCards #-}
-module Evdev.Uapi.Internal.Types.Ioctl where
+module System.Linux.Input.Evdev.Uapi.Internal.Types.Ioctl where
 
 -- Types used in ioctl calls
 

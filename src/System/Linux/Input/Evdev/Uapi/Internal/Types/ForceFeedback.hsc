@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
-module Evdev.Uapi.Internal.Types.ForceFeedback where
+module System.Linux.Input.Evdev.Uapi.Internal.Types.ForceFeedback where
 
 import Control.Applicative ((<$>), (<*>), liftA2)
 import Data.Int            (Int16, Int32)

@@ -1,13 +1,13 @@
 {-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
-module Evdev.Uapi.Internal.Types.InputEvent where
+module System.Linux.Input.Evdev.Uapi.Internal.Types.InputEvent where
 
 import Data.Int            (Int32)
 import Data.UnixTime       (UnixTime(..))
 import Data.Word           (Word16)
 import Foreign.Storable
 
-import qualified Evdev.Uapi.Internal.Types.ForceFeedback as FF
-import qualified Evdev.Uapi.Internal.Types.Ioctl as IC
+import qualified System.Linux.Input.Evdev.Uapi.Internal.Types.ForceFeedback as FF
+import qualified System.Linux.Input.Evdev.Uapi.Internal.Types.Ioctl as IC
 
 #include <linux/input.h>
 

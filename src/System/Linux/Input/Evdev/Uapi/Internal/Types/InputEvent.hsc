@@ -150,33 +150,33 @@ import qualified System.Linux.Input.Evdev.Uapi.Internal.Types.Ioctl as IC
 -}
 
 data InputEvent =
-    SynEvent  { time     :: !UnixTime
-              , synCode  :: !SynCode
-              , synValue :: !Int32
+    SynEvent  { time     :: UnixTime
+              , synCode  :: SynCode
+              , synValue :: Int32
               }
-  | KeyEvent  { time     :: !UnixTime
-              , keyCode  :: !KeyCode
+  | KeyEvent  { time     :: UnixTime
+              , keyCode  :: KeyCode
               , keyValue :: KeyValue
               }
-  | RelEvent  { time        :: !UnixTime
-              , relAxesCode :: !RelAxesCode
-              , relValue    :: !Int32
+  | RelEvent  { time        :: UnixTime
+              , relAxesCode :: RelAxesCode
+              , relValue    :: Int32
               }
-  | AbsEvent  { time        :: !UnixTime
-              , absAxesCode :: !AbsAxesCode
-              , absValue    :: !Int32
+  | AbsEvent  { time        :: UnixTime
+              , absAxesCode :: AbsAxesCode
+              , absValue    :: Int32
               }
-  | MscEvent  { time     :: !UnixTime
-              , mscCode  :: !MSCCode
-              , mscValue :: !Int32
+  | MscEvent  { time     :: UnixTime
+              , mscCode  :: MSCCode
+              , mscValue :: Int32
               }
-  | SwEvent   { time    :: !UnixTime
-              , swCode  :: !SWCode
-              , swValue :: !Int32
+  | SwEvent   { time    :: UnixTime
+              , swCode  :: SWCode
+              , swValue :: Int32
               }
-  | LedEvent  { time     :: !UnixTime
-              , ledCode  :: !LEDCode
-              , ledValue :: !Int32
+  | LedEvent  { time     :: UnixTime
+              , ledCode  :: LEDCode
+              , ledValue :: Int32
               }
   | SndEvent  { time     :: !UnixTime
               , sndCode  :: !SndCode
@@ -186,17 +186,17 @@ data InputEvent =
               , repCode  :: !IC.RepCode
               , repValue :: !Int32
               }
-  | FFEvent   { time    :: !UnixTime
-              , ffCode  :: !Word16
-              , ffValue :: !Int32
+  | FFEvent   { time    :: UnixTime
+              , ffCode  :: Word16
+              , ffValue :: Int32
               }
-  | PwrEvent  { time     :: !UnixTime
-              , pwrCode  :: !Word16
-              , pwrValue :: !Int32
+  | PwrEvent  { time     :: UnixTime
+              , pwrCode  :: Word16
+              , pwrValue :: Int32
               }
-  | FFStatusEvent { time :: !UnixTime
-                  , statusCode :: !Word16 -- id of the effect that changed status
-                  , statusValue :: !FF.StatusCode
+  | FFStatusEvent { time :: UnixTime
+                  , statusCode :: Word16 -- id of the effect that changed status
+                  , statusValue :: FF.StatusCode
                   }
     deriving (Eq, Show)
 

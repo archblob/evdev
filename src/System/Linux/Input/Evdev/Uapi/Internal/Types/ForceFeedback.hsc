@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
+{-# LANGUAGE ForeignFunctionInterface , RecordWildCards, CPP #-}
 module System.Linux.Input.Evdev.Uapi.Internal.Types.ForceFeedback where
 
 import Control.Applicative ((<$>), (<*>), liftA2)
@@ -16,51 +16,51 @@ import Prelude hiding (id, length)
 type XY = (ConditionEffect, ConditionEffect)
 
 data Effect =
-    Rumble { id        :: !Int16
-           , direction :: !Word16
-           , trigger   :: !Trigger
-           , replay    :: !Replay
-           , rumble    :: !RumbleEffect
+    Rumble { id        :: Int16
+           , direction :: Word16
+           , trigger   :: Trigger
+           , replay    :: Replay
+           , rumble    :: RumbleEffect
            }
-  | Periodic { id        :: !Int16
-             , direction :: !Word16
-             , trigger   :: !Trigger
-             , replay    :: !Replay
-             , periodic  :: !PeriodicEffect
+  | Periodic { id        :: Int16
+             , direction :: Word16
+             , trigger   :: Trigger
+             , replay    :: Replay
+             , periodic  :: PeriodicEffect
              }
-  | Constant { id        :: !Int16
-             , direction :: !Word16
-             , trigger   :: !Trigger
-             , replay    :: !Replay
-             , constant  :: !ConstantEffect
+  | Constant { id        :: Int16
+             , direction :: Word16
+             , trigger   :: Trigger
+             , replay    :: Replay
+             , constant  :: ConstantEffect
              }
-  | Spring { id        :: !Int16
-           , direction :: !Word16
-           , trigger   :: !Trigger
-           , replay    :: !Replay
-           , spring    :: !XY
+  | Spring { id        :: Int16
+           , direction :: Word16
+           , trigger   :: Trigger
+           , replay    :: Replay
+           , spring    :: XY
            }
-  | Friction { id        :: !Int16
-             , direction :: !Word16
-             , trigger   :: !Trigger
-             , replay    :: !Replay
-             , friction  :: !XY
+  | Friction { id        :: Int16
+             , direction :: Word16
+             , trigger   :: Trigger
+             , replay    :: Replay
+             , friction  :: XY
              }
-  | Damper { id        :: !Int16
-           , direction :: !Word16
-           , trigger   :: !Trigger
-           , replay    :: !Replay
+  | Damper { id        :: Int16
+           , direction :: Word16
+           , trigger   :: Trigger
+           , replay    :: Replay
            }
-  | Inertia { id        :: !Int16
-            , direction :: !Word16
-            , trigger   :: !Trigger
-            , replay    :: !Replay
+  | Inertia { id        :: Int16
+            , direction :: Word16
+            , trigger   :: Trigger
+            , replay    :: Replay
             }
-  | Ramp  { id        :: !Int16
-          , direction :: !Word16
-          , trigger   :: !Trigger
-          , replay    :: !Replay
-          , ramp      :: !RampEffect
+  | Ramp  { id        :: Int16
+          , direction :: Word16
+          , trigger   :: Trigger
+          , replay    :: Replay
+          , ramp      :: RampEffect
           }
 
 instance Storable Effect where
@@ -119,8 +119,8 @@ instance Storable Effect where
 
 data Replay =
   Replay {
-    length :: !Word16
-  , delay  :: !Word16
+    length :: Word16
+  , delay  :: Word16
   } deriving (Eq, Show)
 
 instance Storable Replay where
@@ -136,8 +136,8 @@ instance Storable Replay where
 
 data Trigger =
   Trigger {
-    button   :: !Word16
-  , interval :: !Word16
+    button   :: Word16
+  , interval :: Word16
   } deriving (Eq, Show)
 
 instance Storable Trigger where
@@ -153,10 +153,10 @@ instance Storable Trigger where
 
 data Envelope =
   Envelope {
-    attackLength :: !Word16
-  , attackLevel  :: !Word16
-  , fadeLength   :: !Word16
-  , fadeLevel    :: !Word16
+    attackLength :: Word16
+  , attackLevel  :: Word16
+  , fadeLength   :: Word16
+  , fadeLevel    :: Word16
   } deriving (Eq, Show)
 
 instance Storable Envelope where
@@ -176,8 +176,8 @@ instance Storable Envelope where
 
 data ConstantEffect =
   ConstantEffect {
-    level                  :: !Int16
-  , constantEffectEnvelope :: !Envelope
+    level                  :: Int16
+  , constantEffectEnvelope :: Envelope
   } deriving (Eq, Show)
 
 instance Storable ConstantEffect where
@@ -193,9 +193,9 @@ instance Storable ConstantEffect where
 
 data RampEffect =
   RampEffect {
-    startLevel           :: !Int16
-  , endLevel             :: !Int16
-  , rampEffectEnvelope   :: !Envelope
+    startLevel           :: Int16
+  , endLevel             :: Int16
+  , rampEffectEnvelope   :: Envelope
   } deriving (Eq, Show)
 
 instance Storable RampEffect where
@@ -213,12 +213,12 @@ instance Storable RampEffect where
 
 data ConditionEffect =
   ConditionEffect {
-    rightSaturation :: !Word16
-  , leftSaturation  :: !Word16
-  , rightCoeff      :: !Int16
-  , leftCoeff       :: !Int16
-  , deadband        :: !Word16
-  , center          :: !Int16
+    rightSaturation :: Word16
+  , leftSaturation  :: Word16
+  , rightCoeff      :: Int16
+  , leftCoeff       :: Int16
+  , deadband        :: Word16
+  , center          :: Int16
   } deriving (Eq, Show)
 
 instance Storable ConditionEffect where
@@ -247,14 +247,14 @@ instance Storable ConditionEffect where
 
 data PeriodicEffect =
   PeriodicEffect {
-    waveform               :: !Waveform
-  , period                 :: !Word16
-  , magnitude              :: !Int16
-  , offset                 :: !Int16
-  , phase                  :: !Word16
-  , periodicEffectEnvelope :: !Envelope
-  , customLen              :: !Word32
-  , customData             :: !(Ptr Int16)
+    waveform               :: Waveform
+  , period                 :: Word16
+  , magnitude              :: Int16
+  , offset                 :: Int16
+  , phase                  :: Word16
+  , periodicEffectEnvelope :: Envelope
+  , customLen              :: Word32
+  , customData             :: Ptr Int16
   } deriving (Eq, Show)
 
 instance Storable PeriodicEffect where
@@ -282,8 +282,8 @@ instance Storable PeriodicEffect where
 
 data RumbleEffect =
   RumbleEffect {
-    strongMagnitude :: !Word16
-  , weakMagnitude   :: !Word16
+    strongMagnitude :: Word16
+  , weakMagnitude   :: Word16
   } deriving (Eq, Show)
 
 instance Storable RumbleEffect where

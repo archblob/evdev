@@ -1,11 +1,13 @@
 {-# LANGUAGE ForeignFunctionInterface , RecordWildCards #-}
 module System.Linux.Input.Evdev.Uapi.Internal.Types.InputEvent where
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Int            (Int32)
 import Data.UnixTime       (UnixTime(..))
-import Data.Word           (Word16, Word)
+import Data.Word           (Word16)
 import Foreign.Storable
+
+import qualified System.Linux.Input.Evdev.Uapi.Internal.Types.ForceFeedback as FF
+import qualified System.Linux.Input.Evdev.Uapi.Internal.Types.Ioctl as IC
 
 #include <linux/input.h>
 
@@ -144,30 +146,110 @@ import Foreign.Storable
   NOTE: Status feedback is only supported by iforce driver. If you have
         a really good reason to use this, please contact
         linux-joystick@atrey.karlin.mff.cuni.cz or anssi.hannula@gmail.com
+        so that support for it can be added to the rest of the drivers.
 -}
 
 data InputEvent =
-  InputEvent {
-    ieTime  :: !UnixTime
-  , ieType  :: !Word16
-  , ieCode  :: !Word16
-  , ieValue :: !Word
-  } deriving (Eq)
+    SynEvent  { time     :: !UnixTime
+              , synCode  :: !SynCode
+              , synValue :: !Int32
+              }
+  | KeyEvent  { time     :: !UnixTime
+              , keyCode  :: !KeyCode
+              , keyValue :: KeyValue
+              }
+  | RelEvent  { time        :: !UnixTime
+              , relAxesCode :: !RelAxesCode
+              , relValue    :: !Int32
+              }
+  | AbsEvent  { time        :: !UnixTime
+              , absAxesCode :: !AbsAxesCode
+              , absValue    :: !Int32
+              }
+  | MscEvent  { time     :: !UnixTime
+              , mscCode  :: !MSCCode
+              , mscValue :: !Int32
+              }
+  | SwEvent   { time    :: !UnixTime
+              , swCode  :: !SWCode
+              , swValue :: !Int32
+              }
+  | LedEvent  { time     :: !UnixTime
+              , ledCode  :: !LEDCode
+              , ledValue :: !Int32
+              }
+  | SndEvent  { time     :: !UnixTime
+              , sndCode  :: !SndCode
+              , sndValue :: !Int32
+              }
+  | RepEvent  { time     :: !UnixTime
+              , repCode  :: !IC.RepCode
+              , repValue :: !Int32
+              }
+  | FFEvent   { time    :: !UnixTime
+              , ffCode  :: !Word16
+              , ffValue :: !Int32
+              }
+  | PwrEvent  { time     :: !UnixTime
+              , pwrCode  :: !Word16
+              , pwrValue :: !Int32
+              }
+  | FFStatusEvent { time :: !UnixTime
+                  , statusCode :: !Word16 -- id of the effect that changed status
+                  , statusValue :: !FF.StatusCode
+                  }
+    deriving (Eq, Show)
 
 instance Storable InputEvent where
   sizeOf _    = (#size struct input_event)
   alignment _ = (#alignment struct input_event)
-  peek ptr    =
-    InputEvent
-        <$> (#peek struct input_event, time)  ptr
-        <*> (#peek struct input_event, type)  ptr
-        <*> (#peek struct input_event, code)  ptr
-        <*> (#peek struct input_event, value) ptr
-  poke ptr (InputEvent {..}) = do
-      (#poke struct input_event, time)  ptr ieTime
-      (#poke struct input_event, type)  ptr ieType
-      (#poke struct input_event, code)  ptr ieCode
-      (#poke struct input_event, value) ptr ieValue
+  peek ptr    = do
+    _type  <- (#peek struct input_event, type)  ptr :: IO Word16
+    _time  <- (#peek struct input_event, time)  ptr :: IO UnixTime
+    _code  <- (#peek struct input_event, code)  ptr :: IO Word16
+    _value <- (#peek struct input_event, value) ptr :: IO Int32
+    let packValues cst acsC acsV = return (cst _time (acsC _code) (acsV _value))
+    case _type of
+      (#const EV_SYN) -> packValues SynEvent SynCode id
+      (#const EV_KEY) -> packValues KeyEvent KeyCode KeyValue
+      (#const EV_REL) -> packValues RelEvent RelAxesCode id
+      (#const EV_ABS) -> packValues AbsEvent AbsAxesCode id
+      (#const EV_MSC) -> packValues MscEvent MSCCode id
+      (#const EV_SW)  -> packValues SwEvent SWCode id
+      (#const EV_LED) -> packValues LedEvent LEDCode id
+      (#const EV_SND) -> packValues SndEvent SndCode id
+      (#const EV_REP) -> packValues RepEvent IC.RepCode id
+      (#const EV_FF)  -> packValues FFEvent id id
+      (#const EV_PWR) -> packValues PwrEvent id id
+      (#const EV_FF_STATUS) -> packValues FFStatusEvent id FF.StatusCode
+      _ -> error $ "Unknown event_type: " ++ show _type
+  poke ptr ev = do
+      (#poke struct input_event, time) ptr (time ev)
+      let pokeType :: Word16 -> IO ()
+          pokeType t = (#poke struct input_event, type) ptr t
+          pokeCode :: Word16 -> IO ()
+          pokeCode c = (#poke struct input_event, code) ptr c
+          pokeValue :: Int32 -> IO ()
+          pokeValue v = (#poke struct input_event, value) ptr v
+          pokeEvent :: Word16 -> Word16 -> Int32 -> IO ()
+          pokeEvent t c v = pokeType t >> pokeCode c >> pokeValue v
+      case ev of
+        SynEvent {..} -> pokeEvent (#const EV_SYN) (unSynCode synCode) synValue
+        KeyEvent {..} -> pokeEvent
+                  (#const EV_KEY) (unKeyCode keyCode) (unKeyValue keyValue)
+        AbsEvent {..} -> pokeEvent
+                  (#const EV_ABS) (unAbsAxesCode absAxesCode) absValue
+        RelEvent {..} -> pokeEvent
+                  (#const EV_REL) (unRelAxesCode relAxesCode) relValue
+        MscEvent {..} -> pokeEvent (#const EV_MSC) (unMSCCode mscCode) mscValue
+        SwEvent  {..} -> pokeEvent (#const EV_SW) (unSWCode swCode) swValue
+        LedEvent {..} -> pokeEvent (#const EV_LED) (unLEDCode ledCode) ledValue
+        SndEvent {..} -> pokeEvent (#const EV_SND) (unSndCode sndCode) sndValue
+        RepEvent {..} -> pokeEvent (#const EV_REP) (IC.unRepCode repCode) repValue
+        FFEvent  {..} -> pokeEvent (#const EV_FF) ffCode ffValue
+        PwrEvent {..} -> pokeEvent (#const EV_PWR) pwrCode pwrValue
+        FFStatusEvent {..} -> pokeEvent
+                  (#const EV_FF_STATUS) statusCode (FF.unStatusCode statusValue)
 
 newtype EventType = EventType { unEventType :: Word16 } deriving (Eq, Show)
 #{enum EventType, EventType,

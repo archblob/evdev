@@ -1,4 +1,4 @@
-name:               archblob-linux-evdev
+name:               evdev
 version:            0.1.0.0
 synopsis:           Linux evdev uapi bindings.
 description:        Bindings to the userspace api for the linux input subsystem.
@@ -37,4 +37,4 @@ library
 
 source-repository head
   type:     git
-  location: https://github.com/archblob/archblob-linux-evdev
+  location: https://github.com/archblob/evdev
